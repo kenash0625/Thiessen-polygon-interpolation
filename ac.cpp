@@ -58,8 +58,6 @@ class XinanjiangModel
 private:
 	// FORCING
 	double *m_pP;   // 降水数据
-	double *m_pEm;  // 水面蒸发数据
-					//
 	long m_nSteps;  // 模型要运行的步长(一共m_nSteps步)
 	long steps;
 	// OUTPUT
@@ -81,6 +79,7 @@ private:
 	double m_Wum;	 // 流域内上层土壤蓄水容量
 	double m_Wlm;   // 流域内下层土壤蓄水容量
 	double m_Wdm;   // 流域内深层土壤蓄水容量，WDM=WM-WUM-WLM 
+	double m_Wu, m_Wd, m_Wl;//流域
 					// EVAPORATION
 	double *m_pEu;  // 上层土壤蒸发量（毫米）
 	double *m_pEl;  // 下层土壤蒸发量（毫米）
@@ -98,14 +97,20 @@ private:
 	double m_SM;    //自由水蓄水容量
 	double m_EX;    //自由水蓄水容量～面积分布曲线指数
 	double m_KG;    //地下水日出流系数
+	double m_KS;    //地下水日出流系数
 	double m_KI;    //壤中流日出流系数
 	double m_CG;    //地下水消退系数
 	double m_CI;    //壤中流消退系数
 	double *m_UH;    // 单元流域上地面径流的单位线
 	double m_WMM;     // 流域内最大蓄水容量
 	double m_Area;    // 流域面积
+	double m_Em;     //蒸发皿数据
 	int  m_DeltaT;   // 每一步长的小时数
 	int  m_PD;       // 给定数据，用以判断是否时行河道汇流计算
+	double m_KKS ,m_KKR,m_KKG;
+	double m_S0, m_Fr0;
+	double m_Eu, m_El, m_Ed;
+	double m_R;
 public:
 	XinanjiangModel(void);
 	~XinanjiangModel(void);
@@ -122,16 +127,11 @@ public:
 private:
 	// 进行汇流计算，将径流深度转换为流域出口的流量
 	void Routing(void);
+
+	void evaporation();
 };
 
 
-#include <iostream>
-#include <fstream>
-#include <iomanip>
-using namespace std;
-#include "math.h"
-#include "stdio.h"
-#include "conio.h"
 XinanjiangModel::XinanjiangModel(void)
 {
 	this->m_pP = NULL;
@@ -301,7 +301,7 @@ void XinanjiangModel::RunModel(void)
 		// ——————蒸散发计算————————————//
 		RB = m_pP[i] * m_IM;     // RB是降在不透水面的降雨量
 		P = m_pP[i] * (1 - m_IM);
-		Ep = m_Kc * m_pEm[i];
+	/*	Ep = m_Kc * m_pEm[i];
 		if ((WU + P) >= Ep)
 		{
 			EU = Ep; EL = 0; ED = 0;
@@ -321,61 +321,10 @@ void XinanjiangModel::RunModel(void)
 			{
 				EL = WL;  ED = m_C * (Ep - EU) - EL;
 			}
-		}
+		}*/
 		E = EU + EL + ED;
 		PE = P - E;
-		/* ———————蒸散发计算结束——————————— */
-		//——————子流域产流量计算————————————//
-		if (PE <= 0)
-		{
-			R = 0.00;  W = W + PE;
-		}
-		else
-		{
-			A = m_WMM * (1 - pow((1.0 - W / m_WM), 1.0 / (1 + m_B)));
-			// 土壤湿度折算净雨量+降水后蒸发剩余雨量<流域内最大含水容量
-			if ((A + PE)<this->m_WMM)
-			{
-				// 流域内的产流深度计算
-				R = PE             /*  降水蒸发后的剩余量*/
-					+ W          /* 流域内土壤湿度*/
-					+ m_WM * pow((1 - (PE + A) / m_WMM), (1 + m_B))
-					- m_WM  /* 减去流域平均蓄水容量（m_WM:参数）  */
-					+ RB;   /* 不透水面上产生的径流*/
-			}
-			// 土壤湿度折算净雨量+降水后蒸发剩余雨量<流域内最大含水容量
-			else
-			{
-				// 流域内的产流深度计算
-				R = PE             /*  降水蒸发后的剩余量					              +  W   /*  流域内土壤湿度*/
-					- m_WM  /*  减去流域平均蓄水容量  */
-					+ RB;   /* 不透水面上产生的径流*/
-			}
-		}
-		//三层蓄水量的计算: WU, WL, WD
-		if (WU + P - EU - R <= m_Wum)
-		{
-			WU = WU + P - EU - R;  WL = WL - EL; WD = WD – ED;
-		}
-		else
-		{
-			WU = m_Wum;
-			if (WL - EL + (WU + P - EU - R - m_Wum) <= m_Wlm)
-			{
-				WL = WL – EL + (WU + P - EU - R - m_Wum);
-				WD = WD - ED;
-			}
-			else
-			{
-				WL = m_Wlm;
-				if (WD - ED + WL - EL + (WU + P - EU - R - m_Wum)
-					- m_Wlm <= m_Wdm)
-					WD = WD - ED + WL - EL
-					+ (WU + P - EU - R - m_Wum) - m_Wlm;
-				else
-					WD = m_Wdm;
-			}
-		}
+
 		W = WU + WL + WD;
 		////三水源划分汇流计算
 		if (PE>0)
@@ -422,30 +371,6 @@ void XinanjiangModel::RunModel(void)
 		/* 12 */ this->m_pR[i] = R;     // 当前步长的总产流径流深度
 	}
 	this->Routing();
-}
-// 保存模拟结果到文件
-void XinanjiangModel::SaveResults(char* FileName)
-{
-	int i;
-	FILE  * fp;
-	if ((fp = fopen(FileName, "w")) == NULL)
-	{
-		printf("Can not create output file!\n");
-		return;
-	}
-	fprintf(fp, "  - -- -- ---- - - -- -- ---- - ------ --- --  ------ - - -- ---- ----- -- - - ------- -- --  - \n");
-	fprintf(fp, " E(mm) EU(mm) EL(mm) ED(mm) W(mm) WU(mm) WL(mm) WD(mm) R(mm) RS(mm) RI(mm) RG(mm) Q(m3/d) QS(m3/d) QI(m3/d) QG(m3/d)\n");
-	fprintf(fp, "  - -- -- -- - -  --- -- -- - - -- ----- -- - - -- -- -- - - -- -- --------- - - -- --------- -- -\n");
-	for (i = 0; i<this->steps; i++)
-	{
-		fprintf(fp, "%9.3lf%9.3lf%9.3lf%9.3lf%9.3lf%9.3lf%9.3lf%9.3lf%9.3lf%9.3lf%
-			9.3lf%9.3lf%9.3lf%9.3lf%9.3lf%9.3lf\n",
-			this->m_pE[i], this->m_pEu[i], this->m_pEl[i], this->m_pEd[i],
-			this->m_pW[i], this->m_pWu[i], this->m_pWl[i], this->m_pWd[i],
-			this->m_pR[i], this->m_pRs[i], this->m_pRi[i], this->m_pRg[i],
-			this->m_pQ[i], this->m_pQrs[i], this->m_pQri[i], this->m_pQrg[i]);
-	}
-	fclose(fp);
 }
 // 进行汇流计算，将径流深度转换为流域出口的流量
 void XinanjiangModel::Routing(void)
@@ -495,16 +420,102 @@ void XinanjiangModel::Routing(void)
 		this->m_pQ[i] = this->m_pQrs[i] + this->m_pQri[i] + this->m_pQrg[i];
 	}
 }
-void XinanjiangModel::Runoff(char * runoff)
+//
+void XinanjiangModel::evaporation(double &prun)
 {
-	int i;
-	ofstream outfile;
-	outfile.open(runoff);
-	if (outfile.is_open())
+	/* ———————蒸散发计算结束——————————— */
+	double Ep = m_Kc * m_Em;//蒸散发能力
+	if ((m_Wu + prun) >= Ep)
 	{
-		for (i = 0; i<this->steps; i++) { outfile << setprecision(3) << setiosflags(ios::fixed) << this->m_pQ[i] << endl; }
+		m_Eu = Ep; m_El = 0; m_Ed = 0;
 	}
-	outfile.close();
+	else
+	{
+		m_Eu = m_Wu + prun;
+		if (m_Wl >= (m_C * m_Wlm))
+		{
+			m_El = (Ep - m_Eu) * m_Wl / m_Wlm;  m_Ed = 0;
+		}
+		else if ((m_C * (Ep - m_Eu)) <= m_Wl)
+		{
+			m_El = m_C * (Ep - m_Eu);  m_Ed = 0;
+		}
+		else
+		{
+			m_El = m_Wl;  m_Ed = m_C * (Ep - m_Eu) - m_El;
+		}
+	}
+	double PE = prun - m_El - m_Eu - m_Ed;
+	//——————子流域产流量计算————————————//
+	if (PE <= 0)
+	{
+		m_R = 0;
+	}
+	else
+	{
+		double W = m_Wu + m_Wl + m_Wd;
+		double A = m_WMM * (1 - pow((1.0 - W / m_WM), 1.0 / (1 + m_B)));
+		// 土壤湿度折算净雨量+降水后蒸发剩余雨量<流域内最大含水容量
+		if ((A + PE) < m_WMM)
+		{
+			// 流域内的产流深度计算
+			m_R = PE             /*  降水蒸发后的剩余量*/
+				+ W          /* 流域内土壤初始蓄水容量*/
+				+ m_WM * pow((1 - (PE + A) / m_WMM), (1 + m_B))
+				- m_WM; /* 减去流域平均蓄水容量（m_WM:参数）  */
+		}
+		// 土壤湿度折算净雨量+降水后蒸发剩余雨量<流域内最大含水容量
+		else
+		{
+			// 流域内的产流深度计算
+			m_R = PE             /*  降水蒸发后的剩余量					              +  W   /*  流域内土壤湿度*/
+				- m_WM  /*  减去流域平均蓄水容量  */
+				+ W;
+		}
+	}
+	//三层蓄水量的计算: WU, WL, WD
+	if (prun - m_Eu - m_R > 0.0) {
+		if (m_Wu + prun - m_Eu - m_R <= m_Wum) {
+			m_Wu = m_Wu + prun - m_Eu - m_R;
+			m_Wl = m_Wl - m_El;
+			m_Wd = m_Wd - m_Ed;
+		}
+		else {
+			m_Wu = m_Wum;
+			if ((m_Wl - m_El) + (m_Wu + prun - m_Eu - m_R - m_Wum) <= m_Wlm) {
+				m_Wl = (m_Wl - m_El) + (m_Wu + prun - m_Eu - m_R - m_Wum);
+				m_Wd = m_Wd - m_Ed;
+			}
+			else {
+				m_Wl = m_Wlm;
+				if ((m_Wd - m_Ed) + (m_Wl - m_El) + (m_Wu + prun - m_Eu - m_R - m_Wum) - m_Wlm <= m_Wdm) {
+					m_Wd = (m_Wd - m_Ed) + (m_Wl - m_El) + (m_Wu + prun - m_Eu - m_R - m_Wum) - m_Wlm;
+				}
+				else {
+					m_Wd = m_Wdm;
+				}
+			}
+		}
+	}
+	else {
+		if (m_Wu > fabs(prun - m_Eu - m_R)) {
+			m_Wu = m_Wu - fabs(prun - m_Eu - m_R);
+			m_Wl = m_Wl-m_El;
+			m_Wd = m_Wd - m_Ed;
+		}
+		else {
+			m_Wu = 0;
+			m_Wl = m_Wu - fabs(prun - m_Eu - m_R) + m_Wl - m_El;
+			m_Wd = m_Wd - m_Ed;
+			if (m_Wl < 0) {
+				m_Wl = 0;
+				m_Wd = m_Wu - fabs(prun - m_Eu - m_R) + (m_Wl - m_El) + (m_Wd - m_Ed);
+				if (m_Wd < 0) {
+					m_Wd = 0;
+				}
+			}
+		}
+	}
 }
 
 int _tmain(int argc, _TCHAR *  argv[])
