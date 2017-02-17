@@ -44,7 +44,7 @@ MyFrame::MyFrame(wxMDIParentFrame *parent, const wxString& title, const wxPoint&
 	
 	
 	{
-		OGRFile o("D:/Maps/RIVL.shp");
+		OGRFile o("C:/Users/awtf/Desktop/a/RIVL.shp");
 		o.m_pLayer->GetExtent(&canvas->m_Extent);
 		for (OGRFeature *pfe;pfe=o.m_pLayer->GetNextFeature();OGRFeature::DestroyFeature(pfe))
 		{
@@ -55,8 +55,13 @@ MyFrame::MyFrame(wxMDIParentFrame *parent, const wxString& title, const wxPoint&
 			cal.stringsplit(frvcd, cal.allnode[cd].from);
 			cal.allnode[cd].to = trvcd;
 		}
-		cal.trace("AFAB120800000000","AFAB120800000000");
-		cal.wait();
+		string rt("AGA2100001a00000");
+		
+		{
+			cal.trace(rt, rt);
+			cal.wait();
+		}
+
 	}
 	canvas->SetExtent();
 	//canvas->SetScrollbars(10, 10, 100, 240);
@@ -140,7 +145,7 @@ void MyCanvas::OnMouseWheel(wxMouseEvent & event)
 
 void MyCanvas::Hello(int shiftx,int shifty,double z)
 {
-	OGRFile ofile("D:/Maps/RIVL.shp");
+	OGRFile ofile("C:/Users/awtf/Desktop/a/RIVL.shp");
 	wxSize sz = GetClientSize();
 	wxPen pen(wxColour(0, 0, 0), 1, wxPENSTYLE_SOLID);
 	bitmap.Create(sz);
