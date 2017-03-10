@@ -1,10 +1,6 @@
 #include <vector>
 #include <string>
-#ifdef ST2WSEXPORT 
-#define ST2WS __declspec(dllexport)
-#else 
-#define ST2WS __declspec(dllimport)
-#endif
+#include <map>
 using namespace std;
 namespace geos
 {
@@ -14,15 +10,14 @@ namespace geos
 	}
 }
 
-struct ST2WS st2ws
+struct  st2ws
 {	
 	enum useable_station { DYNAMIC, STATIC0, STATICINVERSE, };
 	enum station_interp { KRIGING, THIESSEN, INVERSE, LINER, };
 	//添加所有流域测站 调用一次 
 	void add_st(double x,double y,const string & cd);
-	void add_ws(double x,double y,const string & cd);
+	void add_ws(geos::geom::Geometry*,const string & cd);
 	void add_end();
-	void ws_shp(const string &spath);
 	//循环设置所有测站雨量
 	void begin_st_rain();
 	void st_rain(double);
@@ -46,4 +41,3 @@ struct ST2WS st2ws
 	station_interp _station_interp;
 	
 };
-ST2WS char *  out_put_voronoi(char *spath, char * wsshp, char * stshp, char ** stcds, int stcnt, char ** wscds, int wscnt);
