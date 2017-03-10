@@ -3,7 +3,7 @@
 
 #include "OGRFile.h"
 #include "ConsoleApplication2.h"
-#include "ac.h"
+
 
 enum
 {
@@ -35,7 +35,7 @@ bool MyApp::OnInit()
 	frame->Show(true);
 	return true; 
 }
-ac_calibration cal;
+
 MyFrame::MyFrame(wxMDIParentFrame *parent, const wxString& title, const wxPoint& pos, const wxSize& size)
 	: wxMDIChildFrame(parent,wxID_ANY,"title test")
 {
@@ -44,23 +44,23 @@ MyFrame::MyFrame(wxMDIParentFrame *parent, const wxString& title, const wxPoint&
 	
 	
 	{
-		OGRFile o("C:/Users/awtf/Desktop/a/RIVL.shp");
-		o.m_pLayer->GetExtent(&canvas->m_Extent);
-		for (OGRFeature *pfe;pfe=o.m_pLayer->GetNextFeature();OGRFeature::DestroyFeature(pfe))
-		{
-			string cd = pfe->GetFieldAsString("RVCD");
-			string frvcd = pfe->GetFieldAsString("FRVCD"), trvcd = pfe->GetFieldAsString("TRVCD");
-			
-			cal.allnode[cd].cd = cd;
-			cal.stringsplit(frvcd, cal.allnode[cd].from);
-			cal.allnode[cd].to = trvcd;
-		}
-		string rt("AGA2100001a00000");
-		
-		{
-			cal.trace(rt, rt);
-			cal.wait();
-		}
+// 		OGRFile o("C:/Users/awtf/Desktop/a/RIVL.shp");
+// 		o.m_pLayer->GetExtent(&canvas->m_Extent);
+// 		for (OGRFeature *pfe;pfe=o.m_pLayer->GetNextFeature();OGRFeature::DestroyFeature(pfe))
+// 		{
+// 			string cd = pfe->GetFieldAsString("RVCD");
+// 			string frvcd = pfe->GetFieldAsString("FRVCD"), trvcd = pfe->GetFieldAsString("TRVCD");
+// 			
+// 			cal.allnode[cd].cd = cd;
+// 			cal.stringsplit(frvcd, cal.allnode[cd].from);
+// 			cal.allnode[cd].to = trvcd;
+// 		}
+// 		string rt("AGA2100001a00000");
+// 		
+// 		{
+// 			cal.trace(rt, rt);
+// 			cal.wait();
+// 		}
 
 	}
 	canvas->SetExtent();

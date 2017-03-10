@@ -14,6 +14,7 @@ class GDALReg
 {
 	friend class OGRFile;
 	static int m_nCnt;
+	static GEOSContextHandle_t m_geo;
 	GDALReg();
 	~GDALReg();
 };
@@ -41,7 +42,7 @@ public:
 	void create(OGRSpatialReference *p=nullptr);
 	int copy(string strname);
 	operator bool();
-
+	GEOSContextHandle_t geosctx();
 	//vector 改变大小时会调用元素的析构函数 有poSRS时会delete两次poSRS-OGRFeature::DsestroyFeature
 
 	static int equals(const OGRPoint &lhs,const OGRPoint &rhs);

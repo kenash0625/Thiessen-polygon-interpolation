@@ -6,14 +6,21 @@
 #include <iostream>
 #include <algorithm>
 using namespace std;
-
-#pragma comment(lib,"..\\lib\\gdal_i.lib")
+#ifdef GDALDEBUG
+#pragma comment(lib,"../debug/gdal_i.lib")
+#else 
+#pragma comment(lib,"../release/gdal_i.lib")
+#endif
 int GDALReg::m_nCnt=0;
+
+GEOSContextHandle_t GDALReg::m_geo=nullptr;
+
 //char* pszOldEnc, *pszOldUTF8;
 GDALReg::GDALReg()
 {	
 	m_nCnt++;
 	if(m_nCnt>1) return;
+	m_geo=OGRGeometry::createGEOSContext();
 	GDALAllRegister();
 	OGRRegisterAll();
 	// backup old value
@@ -43,17 +50,24 @@ GDALReg::~GDALReg()
 		//CPLFree(pszOldUTF8);
 		//CPLFree(pszOldEnc);
 		OGRCleanupAll();
+		OGRGeometry::freeGEOSContext(m_geo);
 	}
 }
 
 OGRFile::OGRFile( string strName, openmode mode, string strLayerName,string drvname,OGRwkbGeometryType geotype, OGRSpatialReference *psrs )
 {
+	
 	init(strName,mode,strLayerName,drvname,geotype,psrs);
 }
 
 OGRFile::operator bool()
 {
 	return m_poDS!=nullptr && m_pLayer!=nullptr;
+}
+
+GEOSContextHandle_t OGRFile::geosctx()
+{
+	return m_geo;
 }
 
 OGRFile::~OGRFile()
