@@ -11,6 +11,7 @@
 #include <geos/geom/CoordinateArraySequence.h>
 #include <geos/triangulate/VoronoiDiagramBuilder.h>
 #include <geos/geom/Point.h>
+#include <geos/geom/LineString.h>
 #include <algorithm>
 #include <vector>
 #include <map>
@@ -26,95 +27,94 @@
 #pragma comment(lib,"../release/geos_i_361_msvc1800.lib")
 #endif
 
-void ThiessenCalcZ2(int sitecnt, double *sitex, double *sitey, double *sitez, int cellcnt, geos::geom::Geometry **cells, double*cellarea,double *cellz,vector<map<int,double>> *pweight,int nfind)
+void st2ws::thiessen_calcz(int sitecnt, double *sitex, double *sitey, double *sitez, int cellcnt, geos::geom::Geometry **cells, double*cellarea,double *cellz,thi_weight_area *pweight)
 {
 	vector<int> sitePoly2(sitecnt);
 	double *p1, *p2, *p3;
 	int idxrun;
-	if (!nfind)
+	geos::geom::Geometry **geomRun;
+	geos::geom::CoordinateArraySequence seq;
+	geos::geom::Envelope env;
+	geos::triangulate::VoronoiDiagramBuilder builder;
+	const geos::geom::GeometryFactory& geomFact(*geos::geom::GeometryFactory::getDefaultInstance());
+	geos::geom::Point *p = geomFact.createPoint();
+	std::auto_ptr<geos::geom::GeometryCollection> polys;
+	//sitePoly2 : index - site index ;val - cell index
+	for (p1 = sitex, p2 = sitey, idxrun = 0; idxrun < sitecnt;p1++, idxrun++, p2++)
 	{
-		geos::geom::Geometry **geomRun;
-		geos::geom::CoordinateArraySequence seq;
-		geos::geom::Envelope env;
-		geos::triangulate::VoronoiDiagramBuilder builder;
-		const geos::geom::GeometryFactory& geomFact(*geos::geom::GeometryFactory::getDefaultInstance());
-		std::auto_ptr<geos::geom::GeometryCollection> polys;
-		//sitePoly2 : index - site index ;val - cell index
-		for (p3 = sitez, p1 = sitex, p2 = sitey, idxrun = 0; idxrun < sitecnt;
-		p1++, idxrun++, p2++, p3++)
-		{
-			geos::geom::Coordinate coordrun(*p1, *p2);
-			seq.add(coordrun);
-			env.expandToInclude(coordrun);
-		}
-		for (geomRun = cells, idxrun = 0; idxrun < cellcnt; idxrun++, geomRun++)
-		{
-			env.expandToInclude((*geomRun)->getEnvelopeInternal());
-		}
-		builder.setSites(seq);
-		builder.setTolerance(0);
-		builder.setClipEnvelope(&env);
-		polys = builder.getDiagram(geomFact);
-		for (p3 = sitez, p1 = sitex, p2 = sitey, idxrun = 0; idxrun < sitecnt;
-		p1++, idxrun++, p2++, p3++)
-		{
-			for (std::size_t i = 0; i < polys->getNumGeometries(); ++i)
-			{
-				const geos::geom::Point *pcoord = (const geos::geom::Point *)polys->getGeometryN(i)->getUserData();
-				if (*p1 == pcoord->getX() && *p2 == pcoord->getY())
-				{
-					sitePoly2[idxrun] = i;
-					break;
-				}
-			}
-		}
-		//流域下标-测站下标-权重
-		pweight->resize(cellcnt);
-		for (p2 = cellarea, p1 = cellz, geomRun = cells, idxrun = 0; idxrun < cellcnt; idxrun++, geomRun++, p1++, p2++)
-		{
-			*p1 = 0;
-			int calc = 0;
-			//两种情况 流域被一个多边形包含 或 流域与多个多边形相交
-			for (std::vector<int>::iterator i = sitePoly2.begin(); i != sitePoly2.end(); i++)
-			{
-				const geos::geom::Polygon *a = dynamic_cast<const geos::geom::Polygon*>(polys->getGeometryN(*i));
-				if (a->equals(*geomRun) || a->contains(*geomRun))
-				{
-					calc = 1;
-					(*pweight)[idxrun][i - sitePoly2.begin()] = *p2;
-				}
-			}
-			if (calc) continue;
-			for (std::vector< int>::iterator i = sitePoly2.begin(); i != sitePoly2.end(); i++)
-			{
-				const geos::geom::Polygon *a = dynamic_cast<const geos::geom::Polygon*>(polys->getGeometryN(*i));
-				if ((*geomRun)->intersects(a))
-				{
-					geos::geom::Geometry *pGeom = (*geomRun)->intersection(a);
-					if (!pGeom || (geos::geom::GeometryTypeId::GEOS_POLYGON != pGeom->getGeometryTypeId() && geos::geom::GeometryTypeId::GEOS_MULTIPOLYGON != pGeom->getGeometryTypeId()))
-					{
-						//ofsLog << endl << "cell.cellBoundary->Intersection(&a)==0";
-						throw 1;
-					}
-					(*pweight)[idxrun][i - sitePoly2.begin()] = pGeom->getArea();
-					delete pGeom;
-				}
-			}
-		}
+		geos::geom::Coordinate coordrun(*p1, *p2);
+		seq.add(coordrun);
+		env.expandToInclude(coordrun);
+	}
+	for (geomRun = cells, idxrun = 0; idxrun < cellcnt; idxrun++, geomRun++)
+	{
+		env.expandToInclude((*geomRun)->getEnvelopeInternal());
+	}
+	builder.setSites(seq);
+	builder.setTolerance(0);
+	builder.setClipEnvelope(&env);
+	polys = builder.getDiagram(geomFact);
+	for (p1 = sitex, p2 = sitey, idxrun = 0; idxrun < sitecnt;p1++, idxrun++, p2++)
+	{
 		for (std::size_t i = 0; i < polys->getNumGeometries(); ++i)
 		{
-			geos::geom::Point *pcoord = (geos::geom::Point *)polys->getGeometryN(i)->getUserData();
-			geomFact.destroyGeometry(pcoord);
+			const geos::geom::Point *pcoord = (const geos::geom::Point *)polys->getGeometryN(i)->getUserData();
+			if (*p1 == pcoord->getX() && *p2 == pcoord->getY())
+			{
+				sitePoly2[idxrun] = i;
+				break;
+			}
 		}
 	}
-	for (p2=cellz,p1=cellarea,idxrun = 0; idxrun < cellcnt;idxrun++,p1++,p2++)
+	//流域下标-测站下标-权重
+	pweight->weights.resize(cellcnt);
+	for (p2 = cellarea, p1 = cellz, geomRun = cells, idxrun = 0; idxrun < cellcnt; idxrun++, geomRun++, p1++, p2++)
 	{
-		double dsum = 0;
-		for (auto &a:pweight->at(idxrun))
+		*p1 = 0;
+		int calc = 0;
+		//两种情况 流域被一个多边形包含 或 流域与多个多边形相交
+		for (std::vector<int>::iterator i = sitePoly2.begin(); i != sitePoly2.end(); i++)
 		{
-			dsum += sitez[a.first] * a.second;
+			const geos::geom::Polygon *a = dynamic_cast<const geos::geom::Polygon*>(polys->getGeometryN(*i));
+			if (a->equals(*geomRun) || a->contains(*geomRun))
+			{
+				calc = 1;
+				pweight->weights[idxrun][i - sitePoly2.begin()] = *p2;
+			}
 		}
-		*p2 = dsum / *p1;
+		if (calc) continue;
+		for (std::vector< int>::iterator i = sitePoly2.begin(); i != sitePoly2.end(); i++)
+		{
+			const geos::geom::Polygon *a = dynamic_cast<const geos::geom::Polygon*>(polys->getGeometryN(*i));
+			if ((*geomRun)->intersects(a))
+			{
+				geos::geom::Geometry *pGeom = (*geomRun)->intersection(a);
+				if (!pGeom || (geos::geom::GeometryTypeId::GEOS_POLYGON != pGeom->getGeometryTypeId() && geos::geom::GeometryTypeId::GEOS_MULTIPOLYGON != pGeom->getGeometryTypeId()))
+				{
+					//ofsLog << endl << "cell.cellBoundary->Intersection(&a)==0";
+					throw 1;
+				}
+				pweight->weights[idxrun][i - sitePoly2.begin()] = pGeom->getArea();
+				delete pGeom;
+			}
+		}
+	}
+		
+	for (std::size_t i = 0; i < polys->getNumGeometries(); ++i)
+	{
+		geos::geom::Point *pcoord = (geos::geom::Point *)polys->getGeometryN(i)->getUserData();
+		const geos::geom::Polygon*pPoly = dynamic_cast<const geos::geom::Polygon*>(polys->getGeometryN(i));
+		const geos::geom::LineString *pRing = pPoly->getExteriorRing();
+		vector<OGRRawPoint> pttmp(pRing->getNumPoints());
+		for (int j = 0; j < pRing->getNumPoints();j++)
+		{
+			geos::geom::Point*pt = pRing->getPointN(j);
+			pttmp[j].x = pt->getX();
+			pttmp[j].y = pt->getY();
+		}
+		pweight->voropoly.push_back(pttmp.size());
+		pweight->voropts.insert(pweight->voropts.end(), pttmp.begin(), pttmp.end());
+		geomFact.destroyGeometry(pcoord);
 	}
 }
 
@@ -139,6 +139,25 @@ void st2ws::set_useable_station(int stindex)
 	useablest++;
 }
 
+thi_weight_area *st2ws::find_weight_area()
+{
+	for (list<thi_weight_area>::iterator iter = tho.begin(); iter != tho.end();iter++)
+	{
+		if (iter->useablest==useablest)
+		{
+			for (int k = 0; k < useablest;k++)
+			{
+				if (stidxrun[k]!=iter->stidx[k])
+				{
+					break;
+				}
+			}
+			return &*iter;
+		}
+	}
+	return nullptr;
+}
+
 void st2ws::fstationinterp(station_interp _stationInterp)
 {
 	if (useablest == 1)
@@ -150,14 +169,22 @@ void st2ws::fstationinterp(station_interp _stationInterp)
 		for (double &d : wsdrp) d = 0;
 	}
 	else {
-		stringstream ss;
-		for (int i = 0; i < useablest; i++)
+		weightrun= find_weight_area();
+		if (weightrun==nullptr)
 		{
-			ss << stidxrun[i];
+			tho.emplace_back(thi_weight_area());
+			weightrun = &*tho.rbegin();	
+			thiessen_calcz(useablest, stxrun.data(), styrun.data(), stdrprun.data(), vwsgeom.size(), vwsgeom.data(), wsarea.data(), wsdrp.data(), weightrun);
 		}
-		string str = ss.str();
-		int nfiind = (vweight.end() != vweight.find(str));
-		ThiessenCalcZ2(useablest, stxrun.data(), styrun.data(), stdrprun.data(), wsx.size(), vwsgeom.data(), wsarea.data(), wsdrp.data(), &vweight[str], nfiind);
+		for (double *p2 = wsdrp.data(), *p1 = wsarea.data(), nfind = 0; nfind < wsarea.size(); nfind++, p1++, p2++)
+		{
+			double dsum = 0;
+			for (auto &a : weightrun->weights.at(nfind))
+			{
+				dsum += stdrprun[a.first] * a.second;
+			}
+			*p2 = dsum / *p1;
+		}
 	}
 }
 
@@ -172,11 +199,12 @@ void st2ws::add_ws(geos::geom::Geometry*p,const string &cd)
 	vwsgeom.push_back(p);
 	vwscd.push_back(cd);
 	wsarea.push_back(p->getArea());
+	
 }
 void st2ws::add_end()
 {
 	stdrp.resize(stx.size());
-	wsdrp.resize(wsx.size());
+	wsdrp.resize(vwsgeom.size());
 	stxrun.resize(stx.size());
 	styrun.resize(stx.size());
 	stdrprun.resize(stx.size());
@@ -202,6 +230,23 @@ vector<double>& st2ws::ws_rain()
 {
 	return wsdrp;
 }
+
+void st2ws::rand_run()
+{
+	//for (;;)
+	{
+		int range_max = 100, range_min = -100, nStsize = stx.size();
+		srand((unsigned)time(NULL));
+		begin_st_rain();
+		for (int j = 0; j < nStsize; j++)
+		{
+			int drun = (double)rand() / (RAND_MAX + 1) * (range_max - range_min)+ range_min;
+			st_rain(drun);
+		}
+		calc(st2ws::DYNAMIC, st2ws::THIESSEN);
+	}
+}
+
 void st2ws::fuseablestation(useable_station _useableStation)
 {
 	vector<int> nopst;

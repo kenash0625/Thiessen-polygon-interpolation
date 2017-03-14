@@ -1,6 +1,9 @@
 #include <vector>
 #include <string>
 #include <map>
+#include <list>
+#include <mutex>
+#include <condition_variable>
 using namespace std;
 namespace geos
 {
@@ -9,7 +12,14 @@ namespace geos
 		class Geometry;
 	}
 }
-
+struct thi_weight_area
+{
+	int useablest;
+	vector<int> stidx;
+	vector<int> voropoly;
+	vector<OGRRawPoint> voropts;
+	vector<map<int, double>> weights;
+};
 struct  st2ws
 {	
 	enum useable_station { DYNAMIC, STATIC0, STATICINVERSE, };
@@ -23,20 +33,28 @@ struct  st2ws
 	void st_rain(double);
 	void calc(useable_station u,station_interp s);
 	vector<double> &ws_rain();
-//private:
+	
+	vector<int> stidxrun;
+	int useablest;
+	thi_weight_area *weightrun;
+	vector<geos::geom::Geometry*> vwsgeom;
+	void rand_run();
+private:
 	void fuseablestation(useable_station );
 	void fstationinterp(station_interp);
+	void thiessen_calcz(int sitecnt, double *sitex, double *sitey, double *sitez, int cellcnt, geos::geom::Geometry **cells, double*cellarea, double *cellz, thi_weight_area *pweight);
 	double great_circle_dist(double fi1/*y*/, double lam1, double fi2, double lam2);
 	void set_useable_station(int stindex);
-	vector<double> wsx, wsy, wsdrp, stx, sty, stdrp,wsarea;
+	thi_weight_area* find_weight_area();
+	vector<double>  wsdrp, stx, sty, stdrp,wsarea;
 	vector<string> vwscd, vstcd;
 	vector<double> stxrun, styrun, stdrprun;
 	vector<string> vstcdrun;
-	vector<int> stidxrun;
-	vector<geos::geom::Geometry*> vwsgeom;
+
+
 	//使用这些站点时 各个流域的weight
-	map<string,vector<map<int, double>>> vweight;
-	int useablest,setrainindex;
+	list<thi_weight_area> tho;
+	int setrainindex;
 	useable_station _usable_station;
 	station_interp _station_interp;
 	

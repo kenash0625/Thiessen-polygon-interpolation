@@ -1,13 +1,16 @@
 //#define  WXUSINGDLL
 #include <wx/wx.h>
-
+#include <list>
+#include <vector>
 class MyFrame;
 class MyCanvas :public wxPanel
 {
-	wxPoint pt1,pt2;
+	wxPoint pt1,pt2,ptident;
 	wxBitmap bitmap;
 	wxMemoryDC memdc;
 	double zfac;
+	void extractPolygon(OGRGeometry *pGeom,vector<int> &vParts,vector<OGRRawPoint> &vPts);
+	//void extractPolygon(geos::geom::Geometry *pGeom, vector<int> &vParts, vector<OGRRawPoint> &vPts);
 public:
 	MyCanvas(MyFrame *);
 	void OnPaint(wxPaintEvent &event);
@@ -15,13 +18,17 @@ public:
 	void OnMouseLDown(wxMouseEvent &event);
 	void OnMouseLUp(wxMouseEvent &event);
 	void OnMouseWheel(wxMouseEvent &event);
-
+	void OnMouseRDown(wxMouseEvent &event);
 	void Hello(int,int,double);
 
 
 	double						m_World2DC, m_DC2World, m_Scale;
 	OGREnvelope					m_rWorld, m_Extent;
 	wxRect m_rDC;
+	list<vector<int>> cells;
+	list<vector<OGRRawPoint>> cellpts;
+	list<vector<OGRRawPoint>> sitepolys;
+	vector<OGRRawPoint> sitecoords;
 	double xWorld2DC(double x, bool bRound = true);
 	double yWorld2DC(double y, bool bRound = true);
 
@@ -41,6 +48,7 @@ class MyFrame : public wxMDIChildFrame
 	MyCanvas *canvas;
 public:
 	MyFrame(wxMDIParentFrame *parent,const wxString& title, const wxPoint& pos, const wxSize& size);
+	void RandRun();
 private:
 	wxDECLARE_EVENT_TABLE();
 };
@@ -50,7 +58,9 @@ public:
 	MyParentFrame();
 private:
 	void OnHello(wxCommandEvent& event);
+	void OnRandRun(wxCommandEvent& event);
 	void OnExit(wxCommandEvent& event);
 	void OnAbout(wxCommandEvent& event);
+	MyFrame *subframe;
 	wxDECLARE_EVENT_TABLE();
 };
