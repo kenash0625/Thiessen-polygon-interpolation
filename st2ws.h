@@ -46,6 +46,7 @@ private:
 	double great_circle_dist(double fi1/*y*/, double lam1, double fi2, double lam2);
 	void set_useable_station(int stindex);
 	thi_weight_area* find_weight_area();
+public:
 	vector<double>  wsdrp, stx, sty, stdrp,wsarea;
 	vector<string> vwscd, vstcd;
 	vector<double> stxrun, styrun, stdrprun;

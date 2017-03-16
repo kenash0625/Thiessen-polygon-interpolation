@@ -1,16 +1,27 @@
 //#define  WXUSINGDLL
 #include <wx/wx.h>
+#include <wx/grid.h>
 #include <list>
 #include <vector>
+namespace geos
+{
+	namespace geom
+	{
+		class Geometry;
+	}
+}
 class MyFrame;
+class MyParentFrame;
+class MyIdentFrame;
 class MyCanvas :public wxPanel
 {
+	MyIdentFrame *pIdent;
 	wxPoint pt1,pt2,ptident;
 	wxBitmap bitmap;
 	wxMemoryDC memdc;
 	double zfac;
 	void extractPolygon(OGRGeometry *pGeom,vector<int> &vParts,vector<OGRRawPoint> &vPts);
-	//void extractPolygon(geos::geom::Geometry *pGeom, vector<int> &vParts, vector<OGRRawPoint> &vPts);
+	void extractPolygon(geos::geom::Geometry *pGeom, vector<int> &vParts, vector<OGRRawPoint> &vPts);
 public:
 	MyCanvas(MyFrame *);
 	void OnPaint(wxPaintEvent &event);
@@ -19,7 +30,7 @@ public:
 	void OnMouseLUp(wxMouseEvent &event);
 	void OnMouseWheel(wxMouseEvent &event);
 	void OnMouseRDown(wxMouseEvent &event);
-	void Hello(int,int,double);
+	void Hello();
 
 
 	double						m_World2DC, m_DC2World, m_Scale;
@@ -41,6 +52,7 @@ public:
 class MyApp : public wxApp
 {
 public:
+	MyParentFrame *frame;
 	virtual bool OnInit();
 };
 class MyFrame : public wxMDIChildFrame
@@ -63,4 +75,11 @@ private:
 	void OnAbout(wxCommandEvent& event);
 	MyFrame *subframe;
 	wxDECLARE_EVENT_TABLE();
+};
+class MyIdentFrame:public wxMDIChildFrame
+{
+public:
+	MyIdentFrame(wxMDIParentFrame *parent, const wxString& title, const wxPoint& pos, const wxSize& size);
+	void ShowRes(int wsindex);
+	wxGrid *sitegrid,*cellgrid;
 };

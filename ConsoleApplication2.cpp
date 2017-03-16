@@ -6,10 +6,12 @@
 #include "st2ws.h"
 #include <fstream>
 #include <thread>
+#include <geos/geom/geometry.h>
 #include <geos/geom/Point.h>
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/Polygon.h>
 #include <geos/geom/LineString.h>
+#include <wx/headerctrl.h>
 struct st2ws g_st2ws;
 int main(int, wchar_t*[])
 {
@@ -46,7 +48,7 @@ wxIMPLEMENT_APP(MyApp);
 bool MyApp::OnInit()
 {
 	
-	MyParentFrame *frame = new MyParentFrame();
+	frame = new MyParentFrame();
 	frame->Show(true);
 	return true; 
 }
@@ -151,8 +153,65 @@ void MyCanvas::extractPolygon(OGRGeometry *pGeom, vector<int> &vParts, vector<OG
 	}
 }
 
+void MyCanvas::extractPolygon(geos::geom::Geometry *pGeom, vector<int> &polys, vector<OGRRawPoint> &polypts)
+{
+	geos::geom::GeometryTypeId geomType = pGeom->getGeometryTypeId();
+	if (geomType==geos::geom::GeometryTypeId::GEOS_MULTIPOLYGON)
+	{
+		geos::geom::MultiPolygon *pmp = dynamic_cast<geos::geom::MultiPolygon*>(pGeom);
+		for (int z = 0; z < pmp->getNumGeometries();z++)
+		{
+			const geos::geom::Polygon *geospoly = dynamic_cast<const geos::geom::Polygon*>(pmp->getGeometryN(z));
+			const geos::geom::LineString *geosls = geospoly->getExteriorRing();
+			polys.push_back(geosls->getNumPoints());
+			for (int i = 0; i < geosls->getNumPoints(); i++)
+			{
+				geos::geom::Point *geosppp = geosls->getPointN(i);
+				OGRRawPoint opt(geosppp->getX(), geosppp->getY());
+				polypts.push_back(opt);
+			}
+			for (int i = 0; i < geospoly->getNumInteriorRing(); i++)
+			{
+				const geos::geom::LineString *geosls = geospoly->getInteriorRingN(i);
+				polys.push_back(geosls->getNumPoints());
+				for (int j = 0; j < geosls->getNumPoints(); j++)
+				{
+					geos::geom::Point *geosppp = geosls->getPointN(i);
+					OGRRawPoint opt(geosppp->getX(), geosppp->getY());
+					polypts.push_back(opt);
+				}
+			}
+		}
+	}
+	else if (geomType == geos::geom::GeometryTypeId::GEOS_POLYGON)
+	{
+		geos::geom::Polygon *geospoly = dynamic_cast<geos::geom::Polygon*>(pGeom);
+		const geos::geom::LineString *geosls = geospoly->getExteriorRing();
+		polys.push_back(geosls->getNumPoints());
+		for (int i = 0; i < geosls->getNumPoints(); i++)
+		{
+			geos::geom::Point *geosppp = geosls->getPointN(i);
+			OGRRawPoint opt(geosppp->getX(), geosppp->getY());
+			polypts.push_back(opt);
+		}
+		for (int i = 0; i < geospoly->getNumInteriorRing(); i++)
+		{
+			const geos::geom::LineString *geosls = geospoly->getInteriorRingN(i);
+			polys.push_back(geosls->getNumPoints());
+			for (int j = 0; j < geosls->getNumPoints(); j++)
+			{
+				geos::geom::Point *geosppp = geosls->getPointN(i);
+				OGRRawPoint opt(geosppp->getX(), geosppp->getY());
+				polypts.push_back(opt);
+			}
+		}
+	}
+	
+}
+
 MyCanvas::MyCanvas(MyFrame *parent):wxPanel(parent, -1, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE),zfac(1)
 {
+	pIdent = new MyIdentFrame(wxGetApp().frame, "", wxPoint(), wxSize());
 	OGRFile oStfile("D:/shuju/窑邦-江西/窑邦-江西/Maps/JCZD.shp");
 	OGRFile oWsfile("D:/shuju/窑邦-江西/窑邦-江西/Maps/WATA.shp");	
 	OGRFeature *pFeature;
@@ -253,7 +312,7 @@ void MyCanvas::OnMouseRDown(wxMouseEvent &event)
 	SetExtent();
 }
 
-void MyCanvas::Hello(int shiftx,int shifty,double z)
+void MyCanvas::Hello()
 {
 	wxSize sz = GetClientSize();
 	wxPen pen(wxColour(0, 0, 0), 1, wxPENSTYLE_SOLID);
@@ -277,41 +336,26 @@ void MyCanvas::Hello(int shiftx,int shifty,double z)
 	const geos::geom::GeometryFactory *geomfac(geos::geom::GeometryFactory::getDefaultInstance());
 	geos::geom::Coordinate coord(optident.x, optident.y);
 	geos::geom::Point *geospt = geomfac->createPoint(coord);
+	int nrun(0);
 	for (geos::geom::Geometry*p : g_st2ws.vwsgeom)
 	{
 		if (p->contains(geospt))
 		{
-			wxPen pen(wxColour(0, 0, 255), 1, wxPENSTYLE_SOLID);
+			wxPen pen(wxColour(0, 0, 255), 2, wxPENSTYLE_SOLID);
 			memdc.SetPen(pen);
 			vector<int> polys;
-			vector<wxPoint> polypts;
-			geos::geom::Polygon *geospoly = dynamic_cast<geos::geom::Polygon*>(p);
-			const geos::geom::LineString *geosls = geospoly->getExteriorRing();
-			polys.push_back(geosls->getNumPoints());
-			for (int i = 0; i < geosls->getNumPoints();i++)
-			{
-				wxPoint wxpt;
-				geos::geom::Point *geosppp = geosls->getPointN(i);
-				OGRRawPoint opt(geosppp->getX(), geosppp->getY());
-				xyWorld2DC(&wxpt, &opt);
-				polypts.push_back(wxpt);
-			}
-			for (int i = 0; i < geospoly->getNumInteriorRing(); i++)
-			{
-				const geos::geom::LineString *geosls= geospoly->getInteriorRingN(i);
-				polys.push_back(geosls->getNumPoints());
-				for (int j = 0; j < geosls->getNumPoints(); j++)
-				{
-					wxPoint wxpt;
-					geos::geom::Point *geosppp = geosls->getPointN(i);
-					OGRRawPoint opt(geosppp->getX(), geosppp->getY());
-					xyWorld2DC(&wxpt, &opt);
-					polypts.push_back(wxpt);
-				}
-			}
-			memdc.DrawPolyPolygon(polys.size(), polys.data(), polypts.data(), 0, 0, wxPolygonFillMode::wxWINDING_RULE);
+			vector<OGRRawPoint> polypts;
+			extractPolygon(p, polys, polypts);
+			vector<wxPoint> wxpolypts(polypts.size());
+			std::transform(polypts.begin(), polypts.end(), wxpolypts.begin(), [&](OGRRawPoint &opt)->wxPoint {wxPoint p; xyWorld2DC(&p, &opt); return p; });
+			memdc.DrawPolyPolygon(polys.size(), polys.data(), wxpolypts.data(), 0, 0, wxPolygonFillMode::wxWINDING_RULE);
+			
+			
+			pIdent->ShowRes(nrun);
+			pIdent->Show();
 			break;
 		}
+		++nrun;
 	}
 	//all sites
 	wxBrush p1brush(wxColour(0, 0, 0), wxBRUSHSTYLE_SOLID);
@@ -423,7 +467,7 @@ void MyCanvas::SetExtent()
 	m_World2DC = (double)m_rDC.GetWidth() / (m_rWorld.MaxX - m_rWorld.MinX);
 	m_DC2World = 1.0 / m_World2DC;
 
-	Hello(0, 0, 0);
+	Hello();
 	Refresh();
 }
 
@@ -483,4 +527,34 @@ void MyParentFrame::OnHello(wxCommandEvent& event)
 void MyParentFrame::OnRandRun(wxCommandEvent& event)
 {
 	subframe->RandRun();
+}
+//显示与某个流域、相关的泰森多边形、多边形雨量、流域雨量
+MyIdentFrame::MyIdentFrame(wxMDIParentFrame *parent, const wxString& title, const wxPoint& pos, const wxSize& size ) : wxMDIChildFrame(parent, wxID_ANY, "title2 test"),sitegrid(nullptr),cellgrid(nullptr)
+{	
+}
+
+void MyIdentFrame::ShowRes(int nwsindex)
+{
+	delete sitegrid;
+	delete cellgrid;
+	int r(1);
+	sitegrid = new wxGrid(this, -1, wxPoint(0, 0), wxSize(400, 300));
+	sitegrid->CreateGrid(1 + g_st2ws.weightrun->weights[nwsindex].size(), 3);
+	sitegrid->SetCellValue(0, 0, "SITE");
+	sitegrid->SetCellValue(0, 1, "WEIGHT");
+	sitegrid->SetCellValue(0, 2, "VALUE");
+	for (auto &a : g_st2ws.weightrun->weights[nwsindex])
+	{
+		sitegrid->SetCellValue(r, 0, g_st2ws.vstcdrun[a.first]);
+		sitegrid->SetCellValue(r, 1, std::to_string(a.second / g_st2ws.wsarea[nwsindex]));
+		sitegrid->SetCellValue(r, 2, std::to_string(g_st2ws.stdrprun[a.first]));
+		r++;
+	}
+
+	cellgrid = new wxGrid(this, -1, wxPoint(0, 100), wxSize(400, 300));
+	cellgrid->CreateGrid(2, 2);
+	cellgrid->SetCellValue(0, 0, "CELL");
+	cellgrid->SetCellValue(0, 1, "VALUE");
+	cellgrid->SetCellValue(1, 0, g_st2ws.vwscd[nwsindex]);
+	cellgrid->SetCellValue(1, 1, std::to_string(g_st2ws.wsdrp[nwsindex]));
 }
