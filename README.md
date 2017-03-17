@@ -9,7 +9,7 @@ necessary to use interpolation methods,this is the area weighted Thiessen polygo
 using wxWidgets gdal2.1.0 geos3.6.1
 
 Edited geos-3.6.1\src\triangulate\quadedge\QuadEdgeSubdivision.cpp line 588 ,added the following :
-	cellPoly->setUserData(reinterpret_cast<void*>(new Coordinate(c)));
+	cellPoly->setUserData(reinterpret_cast<void*>(geomFact.createPoint(c)));
 	return cellPoly;
 Edited geos-3.6.1\src\triangulate\VoronoiDiagramBuilder.cpp line 136 ,moved one line:
 		else if(clipEnv.intersects(g->getEnvelopeInternal()))

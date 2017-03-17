@@ -58,8 +58,8 @@ void st2ws::thiessen_calcz(int sitecnt, double *sitex, double *sitey, double *si
 	{
 		for (std::size_t i = 0; i < polys->getNumGeometries(); ++i)
 		{
-			const geos::geom::Coordinate *pcoord = (const geos::geom::Coordinate *)polys->getGeometryN(i)->getUserData();
-			if (*p1 == pcoord->x && *p2 == pcoord->y)
+			const geos::geom::Point *pcoord = (const geos::geom::Point *)polys->getGeometryN(i)->getUserData();
+			if (*p1 == pcoord->getX() && *p2 == pcoord->getY())
 			{
 				sitePoly2[idxrun] = i;
 				break;
@@ -72,8 +72,7 @@ void st2ws::thiessen_calcz(int sitecnt, double *sitex, double *sitey, double *si
 	{
 		*p1 = 0;
 		int calc = 0;
-		(*geomRun)->intersection(&*polys);
-		cout << endl;
+
 		//两种情况 流域被一个多边形包含 或 流域与多个多边形相交
 		for (std::vector<int>::iterator i = sitePoly2.begin(); i != sitePoly2.end(); i++)
 		{
@@ -104,7 +103,7 @@ void st2ws::thiessen_calcz(int sitecnt, double *sitex, double *sitey, double *si
 		
 	for (std::size_t i = 0; i < polys->getNumGeometries(); ++i)
 	{
-		geos::geom::Coordinate *pcoord = (geos::geom::Coordinate *)polys->getGeometryN(i)->getUserData();
+		geos::geom::Point *pcoord = (geos::geom::Point *)polys->getGeometryN(i)->getUserData();
 		const geos::geom::Polygon*pPoly = dynamic_cast<const geos::geom::Polygon*>(polys->getGeometryN(i));
 		const geos::geom::LineString *pRing = pPoly->getExteriorRing();
 		vector<OGRRawPoint> pttmp(pRing->getNumPoints());
@@ -116,8 +115,8 @@ void st2ws::thiessen_calcz(int sitecnt, double *sitex, double *sitey, double *si
 		}
 		pweight->voropoly.push_back(pttmp.size());
 		pweight->voropts.insert(pweight->voropts.end(), pttmp.begin(), pttmp.end());
-		//geomFact.destroyGeometry(pcoord);
-		delete pcoord;
+		geomFact.destroyGeometry(pcoord);
+		//delete pcoord;
 	}
 }
 
