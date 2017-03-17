@@ -212,8 +212,8 @@ void MyCanvas::extractPolygon(geos::geom::Geometry *pGeom, vector<int> &polys, v
 MyCanvas::MyCanvas(MyFrame *parent):wxPanel(parent, -1, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE),zfac(1)
 {
 	pIdent = new MyIdentFrame(wxGetApp().frame, "", wxPoint(), wxSize());
-	OGRFile oStfile("D:/shuju/Ò¤°î-½­Î÷/Ò¤°î-½­Î÷/Maps/JCZD.shp");
-	OGRFile oWsfile("D:/shuju/Ò¤°î-½­Î÷/Ò¤°î-½­Î÷/Maps/WATA.shp");	
+	OGRFile oStfile("D:\\MyFirstProject\\fantastic-guacamole.git\\trunk\\a\\»³ÈáÃÜÔÆÑÓÇìºÏ120160112112804\\Maps\\JCZD.shp");
+	OGRFile oWsfile("D:\\MyFirstProject\\fantastic-guacamole.git\\trunk\\a\\»³ÈáÃÜÔÆÑÓÇìºÏ120160112112804\\Maps\\WATA.shp");	
 	OGRFeature *pFeature;
 	int nRainsz=0,nStsize;
 	oWsfile.m_pLayer->GetExtent(&m_Extent);
