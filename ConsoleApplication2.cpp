@@ -12,6 +12,8 @@
 #include <geos/geom/Polygon.h>
 #include <geos/geom/LineString.h>
 #include <wx/headerctrl.h>
+#include <wx/sizer.h>
+#include <wx/gbsizer.h>
 struct st2ws g_st2ws;
 int main(int, wchar_t*[])
 {
@@ -24,7 +26,9 @@ enum
 	ID_RandRun,
 };
 
-wxBEGIN_EVENT_TABLE(MyFrame, wxMDIChildFrame)
+wxBEGIN_EVENT_TABLE(MyFrame, wxFrame)
+EVT_MENU(ID_RandRun, MyFrame::OnRandRun)
+EVT_MENU(ID_Hello, MyFrame::OnHello)
 wxEND_EVENT_TABLE()
 
 wxBEGIN_EVENT_TABLE(MyCanvas, wxPanel)
@@ -36,19 +40,12 @@ EVT_MOUSEWHEEL(MyCanvas::OnMouseWheel)
 EVT_RIGHT_DOWN(MyCanvas::OnMouseRDown)
 wxEND_EVENT_TABLE()
 
-wxBEGIN_EVENT_TABLE(MyParentFrame, wxMDIParentFrame)
-EVT_MENU(ID_Hello, MyParentFrame::OnHello)
-EVT_MENU(ID_RandRun, MyParentFrame::OnRandRun)
-EVT_MENU(wxID_EXIT, MyParentFrame::OnExit)
-EVT_MENU(wxID_ABOUT, MyParentFrame::OnAbout)
-wxEND_EVENT_TABLE()
-
 wxIMPLEMENT_APP(MyApp);
 
 bool MyApp::OnInit()
 {
 	
-	frame = new MyParentFrame();
+	frame = new MyFrame();
 	frame->Show(true);
 	return true; 
 }
@@ -209,9 +206,8 @@ void MyCanvas::extractPolygon(geos::geom::Geometry *pGeom, vector<int> &polys, v
 	
 }
 
-MyCanvas::MyCanvas(MyFrame *parent):wxPanel(parent, -1, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE),zfac(1)
+MyCanvas::MyCanvas(MyFrame *parent):wxPanel(parent, -1, wxPoint(0,0), wxSize(300,400), wxFULL_REPAINT_ON_RESIZE),zfac(1)
 {
-	pIdent = new MyIdentFrame(wxGetApp().frame, "", wxPoint(), wxSize());
 	OGRFile oStfile("D:\\MyFirstProject\\fantastic-guacamole.git\\trunk\\a\\怀柔密云延庆合120160112112804\\Maps\\JCZD.shp");
 	OGRFile oWsfile("D:\\MyFirstProject\\fantastic-guacamole.git\\trunk\\a\\怀柔密云延庆合120160112112804\\Maps\\WATA.shp");	
 	OGRFeature *pFeature;
@@ -351,8 +347,6 @@ void MyCanvas::Hello()
 			memdc.DrawPolyPolygon(polys.size(), polys.data(), wxpolypts.data(), 0, 0, wxPolygonFillMode::wxWINDING_RULE);
 			
 			
-			pIdent->ShowRes(nrun);
-			pIdent->Show();
 			break;
 		}
 		++nrun;
@@ -371,6 +365,8 @@ void MyCanvas::Hello()
 	//voronoi cells
 	if (g_st2ws.useablest > 1) {
 		memdc.SetBrush(brush);
+		wxPen pen(wxColour(255, 128, 64), 2, wxPENSTYLE_SOLID);
+		memdc.SetPen(pen);
 		vector<wxPoint> wxpts(g_st2ws.weightrun->voropts.size());
 		std::transform(g_st2ws.weightrun->voropts.begin(), g_st2ws.weightrun->voropts.end(), wxpts.begin(), [&](OGRRawPoint &opt)->wxPoint {wxPoint p; xyWorld2DC(&p, &opt); return p; });
 		memdc.DrawPolyPolygon(g_st2ws.weightrun->voropoly.size(), g_st2ws.weightrun->voropoly.data(), wxpts.data(), 0, 0, wxWINDING_RULE);
@@ -476,28 +472,11 @@ void MyCanvas::xyWorld2DC(wxPoint *dst, OGRRawPoint *src) {
 	dst->y = (int)yWorld2DC(src->y);
 }
 
-MyFrame::MyFrame(wxMDIParentFrame *parent, const wxString& title, const wxPoint& pos, const wxSize& size)
-	: wxMDIChildFrame(parent, wxID_ANY, "title test")
-{
-
-	canvas = new MyCanvas(this);
-	canvas->SetExtent();
-}
-
-void MyFrame::RandRun()
-{
-	g_st2ws.rand_run();
-	canvas->SetExtent();
-}
-
-MyParentFrame::MyParentFrame() : wxMDIParentFrame(NULL, wxID_ANY, "wxWidgets MDI Sample",
-	wxDefaultPosition, wxSize(500, 400))
+MyFrame::MyFrame() : wxFrame(NULL, wxID_ANY, "Sample", wxDefaultPosition, wxSize(1024, 768))
 {
 	wxMenu *menuFile = new wxMenu;
-	menuFile->Append(ID_Hello, "&Hello...\tCtrl-H",
-		"Help string shown in status bar for this menu item");
-	menuFile->Append(ID_RandRun, "&RandRun...\tCtrl-R",
-		"Help string shown in status bar for this menu item");
+	menuFile->Append(ID_Hello, "&ReadShp...\tCtrl-H", "Help string shown in status bar for this menu item");
+	menuFile->Append(ID_RandRun, "&RandRun...\tCtrl-R",	"Help string shown in status bar for this menu item");
 	menuFile->AppendSeparator();
 	menuFile->Append(wxID_EXIT);
 	wxMenu *menuHelp = new wxMenu;
@@ -507,38 +486,47 @@ MyParentFrame::MyParentFrame() : wxMDIParentFrame(NULL, wxID_ANY, "wxWidgets MDI
 	menuBar->Append(menuHelp, "&Help");
 	SetMenuBar(menuBar);
 	CreateStatusBar();
-	SetStatusText("Welcome to wxWidgets!");
+	SetStatusText("Welcome");
+
+	canvas = new MyCanvas(this);
+
+	cellgrid = new wxGrid(this,wxID_ANY);
+	sitegrid = new wxGrid(this,wxID_ANY);
+	cellgrid->CreateGrid(7, 2);
+	sitegrid->CreateGrid(7, 3);
+
+	wxGridBagSizer *gbSizer = new wxGridBagSizer();
+	gbSizer->Add(canvas, wxGBPosition(0,0), wxGBSpan(2,2), wxALIGN_CENTER | wxALL, 5);
+	gbSizer->Add(cellgrid, wxGBPosition(0, 2), wxGBSpan(1, 1), wxALIGN_LEFT | wxALL, 2);
+	gbSizer->Add(sitegrid, wxGBPosition(1, 2), wxGBSpan(1, 1), wxALIGN_LEFT | wxALL, 2);
+
+
+	//wxGridSizer *gridsizer = new wxGridSizer(1, 5, 5);
+	//gridsizer->Add(cellgrid,wxSizerFlags().Align(wxALIGN_CENTER_VERTICAL));
+	//gridsizer->Add(sitegrid,wxSizerFlags().Align(wxGROW | wxALIGN_CENTER_VERTICAL));
+	//wxGridSizer *gsizer = new wxGridSizer(2, 5,5 );
+	//gsizer->Add(canvas, wxSizerFlags().Align(wxALIGN_TOP));
+	//gsizer->Add(gridsizer);
+
+	SetSizerAndFit(gbSizer);
+	Centre();
+	
 }
-void MyParentFrame::OnExit(wxCommandEvent& event)
+void MyFrame::OnHello(wxCommandEvent& event)
 {
-	Close(true);
+	canvas->SetExtent();
 }
-void MyParentFrame::OnAbout(wxCommandEvent& event)
+void MyFrame::OnRandRun(wxCommandEvent& event)
 {
-	wxMessageBox("This is a wxWidgets' Hello world sample",
-		"About Hello World", wxOK | wxICON_INFORMATION);
-}
-void MyParentFrame::OnHello(wxCommandEvent& event)
-{
-	subframe = new MyFrame(this,"",wxPoint(),wxSize());
-	subframe->Show(true);
+	g_st2ws.rand_run();
+	canvas->SetExtent();
 }
 
-void MyParentFrame::OnRandRun(wxCommandEvent& event)
-{
-	subframe->RandRun();
-}
 //显示与某个流域、相关的泰森多边形、多边形雨量、流域雨量
-MyIdentFrame::MyIdentFrame(wxMDIParentFrame *parent, const wxString& title, const wxPoint& pos, const wxSize& size ) : wxMDIChildFrame(parent, wxID_ANY, "title2 test"),sitegrid(nullptr),cellgrid(nullptr)
-{	
-}
-
-void MyIdentFrame::ShowRes(int nwsindex)
+void MyFrame::ShowRes(int nwsindex)
 {
-	delete sitegrid;
-	delete cellgrid;
 	int r(1);
-	sitegrid = new wxGrid(this, -1, wxPoint(0, 0), wxSize(400, 300));
+	//sitegrid = new wxGrid(this, -1, wxPoint(0, 0), wxSize(400, 300));
 	sitegrid->CreateGrid(1 + g_st2ws.weightrun->weights[nwsindex].size(), 3);
 	sitegrid->SetCellValue(0, 0, "SITE");
 	sitegrid->SetCellValue(0, 1, "WEIGHT");
@@ -551,7 +539,7 @@ void MyIdentFrame::ShowRes(int nwsindex)
 		r++;
 	}
 
-	cellgrid = new wxGrid(this, -1, wxPoint(0, 100), wxSize(400, 300));
+	//cellgrid = new wxGrid(this, -1, wxPoint(0, 100), wxSize(400, 300));
 	cellgrid->CreateGrid(2, 2);
 	cellgrid->SetCellValue(0, 0, "CELL");
 	cellgrid->SetCellValue(0, 1, "VALUE");

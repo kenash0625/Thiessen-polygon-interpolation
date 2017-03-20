@@ -22,8 +22,8 @@ struct thi_weight_area
 };
 struct  st2ws
 {	
-	enum useable_station { DYNAMIC, STATIC0, STATICINVERSE, };
-	enum station_interp { KRIGING, THIESSEN, INVERSE, LINER, };
+	enum useable_station { DYNAMIC  };
+	enum station_interp {  THIESSEN  };
 	//添加所有流域测站 调用一次 
 	void add_st(double x,double y,const string & cd);
 	void add_ws(geos::geom::Geometry*,const string & cd);
@@ -43,7 +43,6 @@ private:
 	void fuseablestation(useable_station );
 	void fstationinterp(station_interp);
 	void thiessen_calcz(int sitecnt, double *sitex, double *sitey, double *sitez, int cellcnt, geos::geom::Geometry **cells, double*cellarea, double *cellz, thi_weight_area *pweight);
-	double great_circle_dist(double fi1/*y*/, double lam1, double fi2, double lam2);
 	void set_useable_station(int stindex);
 	thi_weight_area* find_weight_area();
 public:

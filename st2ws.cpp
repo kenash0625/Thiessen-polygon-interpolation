@@ -120,17 +120,6 @@ void st2ws::thiessen_calcz(int sitecnt, double *sitex, double *sitey, double *si
 	}
 }
 
-double st2ws::great_circle_dist(double fi1/*y*/, double lam1, double fi2, double lam2)
-{
-	static const double _2pai = 3.1415926 / 180;
-	fi1 *= _2pai;
-	fi2 *= _2pai;
-	lam1 *= _2pai; lam2 *= _2pai;
-	double deltafi = fabs(fi1 - fi2);
-	double deltalam = fabs(lam1 - lam2);
-	double tao = atan2(sqrt(pow(cos(fi2)*sin(deltalam), 2) + pow(cos(fi1)*sin(fi2) - sin(fi1)*cos(fi2)*cos(deltalam), 2)) , (sin(fi1)*sin(fi2) + cos(fi1)*cos(fi2)*cos(deltalam)));
-	return fabs(6378.137*tao);
-}
 void st2ws::set_useable_station(int stindex)
 {
 	styrun[useablest] = sty[stindex];
@@ -257,44 +246,8 @@ void st2ws::fuseablestation(useable_station _useableStation)
 	{
 		if (stdrp[i] < 0)
 		{
-			if (_useableStation == DYNAMIC) continue;
-			else if (_useableStation == STATIC0)  stdrp[i] = 0;
-			else if (_useableStation == STATICINVERSE)
-			{
-				nopst.push_back(i);
-				continue;
-			}
+			continue;
 		}
 		set_useable_station(i);
-	}
-	if (_useableStation == STATICINVERSE)
-	{
-		int nfind = 0;
-		vector<double> stdrpadd;
-		vector<int> stadd;
-		for (int nindx:nopst)
-		{
-			vector<double> stxtmp, stytmp, stdrptmp;
-			for (i = 0; i < useablest; i++)
-			{
-				double dist = great_circle_dist(sty[nindx], stx[nindx], styrun[i], stxrun[i]);
-				if (dist > MINDIST) continue;
-				stxtmp.push_back(stxrun[i]);
-				stytmp.push_back(styrun[i]);
-				stdrptmp.push_back(stdrprun[i]);
-			}
-			double d=-1;
-			//InverseDistCalcZ(1, &stx[nindx], &sty[nindx], &d, stxtmp.size(), stxtmp.data(), stytmp.data(), stdrptmp.data());
-			if (d < 0) d = 0;
-			if (!stxtmp.empty()) nfind++;
-			stdrpadd.push_back(d);
-			stadd.push_back(nindx);
-		}
-		cout << nopst.size() << '\t' << nfind;
-		for (i = 0; i < stadd.size(); i++)
-		{
-			stdrp[stadd[i]] = stdrpadd[i];
-			set_useable_station(stadd[i]);
-		}
 	}
 }
