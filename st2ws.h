@@ -1,4 +1,4 @@
-#include <vector>
+ï»¿#include <vector>
 #include <string>
 #include <map>
 #include <list>
@@ -24,11 +24,11 @@ struct  st2ws
 {	
 	enum useable_station { DYNAMIC  };
 	enum station_interp {  THIESSEN  };
-	//Ìí¼ÓËùÓĞÁ÷Óò²âÕ¾ µ÷ÓÃÒ»´Î 
+	//æ·»åŠ æ‰€æœ‰æµåŸŸæµ‹ç«™ è°ƒç”¨ä¸€æ¬¡ 
 	void add_st(double x,double y,const string & cd);
 	void add_ws(geos::geom::Geometry*,const string & cd);
 	void add_end();
-	//Ñ­»·ÉèÖÃËùÓĞ²âÕ¾ÓêÁ¿
+	//å¾ªç¯è®¾ç½®æ‰€æœ‰æµ‹ç«™é›¨é‡
 	void begin_st_rain();
 	void st_rain(double);
 	void calc(useable_station u,station_interp s);
@@ -52,7 +52,7 @@ public:
 	vector<string> vstcdrun;
 
 
-	//Ê¹ÓÃÕâĞ©Õ¾µãÊ± ¸÷¸öÁ÷ÓòµÄweight
+	//ä½¿ç”¨è¿™äº›ç«™ç‚¹æ—¶ å„ä¸ªæµåŸŸçš„weight
 	list<thi_weight_area> tho;
 	int setrainindex;
 	useable_station _usable_station;

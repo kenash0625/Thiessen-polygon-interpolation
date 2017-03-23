@@ -1,4 +1,4 @@
-// #include "..\\include\\gdal_priv.h"
+ï»¿// #include "..\\include\\gdal_priv.h"
 // #include "..\\include\\gdal_alg.h"
 
 #include ".\\include\\ogrsf_frmts.h"
@@ -15,7 +15,7 @@ class GDALReg
 	GDALReg();
 	~GDALReg();
 };
-//±íÊ¾Ò»¸öshpÎÄ¼þ excelµÄÒ»¸ösheet
+//è¡¨ç¤ºä¸€ä¸ªshpæ–‡ä»¶ excelçš„ä¸€ä¸ªsheet
 class OGRFile:private GDALReg
 {
 	OGRFile(const OGRFile &rhs);

@@ -1,4 +1,4 @@
-// wxWidgets "Hello world" Program
+ï»¿// wxWidgets "Hello world" Program
 // For compilers that support precompilation, includes "wx/wx.h".
 
 #include "OGRFile.h"
@@ -150,10 +150,10 @@ void MyFrame::Pan(wxCommandEvent &)
 }
 
 /*
-ÏÖÏó£ºÈç¹ûÁ÷Óò¶à±ßĞÎ×Ô½» ²¢ÇÒ ±»Ì©É­¶à±ßĞÎÇĞ¸î ÄÇÃ´²»»á¼ÆËãÈ¨ÖØ
-¼´ º¯ÊıWSRAIN·µ»Ø-10 ÓĞÍâ»·µÄ¿ÉÒÔintersection ×Ô½»µÄ²»¿ÉÒÔ
-ÖØÏÖ£ºÊ¹ÓÃ èÏÈÙ µÄ 20160101-Ô¤±¨Ä£ĞÍ£¨Ò»£©_1_1 µÄÁ÷Óòshp£¨fid=2£©ºÍ²âÕ¾shp
-º¯Êı£º SelfIntersectGeom ÓÃÓÚµ÷Õûµã¼¯ Ê¹¶à±ßĞÎ²»×Ô½»
+ç°è±¡ï¼šå¦‚æœæµåŸŸå¤šè¾¹å½¢è‡ªäº¤ å¹¶ä¸” è¢«æ³°æ£®å¤šè¾¹å½¢åˆ‡å‰² é‚£ä¹ˆä¸ä¼šè®¡ç®—æƒé‡
+å³ å‡½æ•°WSRAINè¿”å›-10 æœ‰å¤–ç¯çš„å¯ä»¥intersection è‡ªäº¤çš„ä¸å¯ä»¥
+é‡ç°ï¼šä½¿ç”¨ æŸ˜è£ çš„ 20160101-é¢„æŠ¥æ¨¡å‹ï¼ˆä¸€ï¼‰_1_1 çš„æµåŸŸshpï¼ˆfid=2ï¼‰å’Œæµ‹ç«™shp
+å‡½æ•°ï¼š SelfIntersectGeom ç”¨äºè°ƒæ•´ç‚¹é›† ä½¿å¤šè¾¹å½¢ä¸è‡ªäº¤
 */
 void SelfIntersectPt(vector<OGRRawPoint> &vpts)
 {
@@ -169,7 +169,7 @@ void SelfIntersectPt(vector<OGRRawPoint> &vpts)
 			int i(0);
 			--i;
 		}
-		else if (ls0.Intersects(&ls1))//×Ô½»µÄÇé¿ö 0123->0x21x3
+		else if (ls0.Intersects(&ls1))//è‡ªäº¤çš„æƒ…å†µ 0123->0x21x3
 		{
 			OGRGeometry *pInterGeom = ls0.Intersection(&ls1);
 			OGRPoint *pInterPt = (OGRPoint *)pInterGeom;
@@ -343,10 +343,10 @@ MyCanvas::MyCanvas(wxWindow *parent):wxScrolledWindow(parent, -1, wxPoint(0,0), 
 
 }
 /* 
-DCµÄ±ß¿ò(m_rDC) Í¼²ãµÄ±ß¿ò(m_Extent)
-¸ù¾İÁ½¸ö±ß¿òµÄ×İºá±È ĞŞ¸ÄÍ¼²ãµÄ±ß¿ò
-   Ëã³öDCÓëÍ¼²ãµÄ±ÈÀı
-   ¸ù¾İ±ÈÀı »­µã
+DCçš„è¾¹æ¡†(m_rDC) å›¾å±‚çš„è¾¹æ¡†(m_Extent)
+æ ¹æ®ä¸¤ä¸ªè¾¹æ¡†çš„çºµæ¨ªæ¯” ä¿®æ”¹å›¾å±‚çš„è¾¹æ¡†
+   ç®—å‡ºDCä¸å›¾å±‚çš„æ¯”ä¾‹
+   æ ¹æ®æ¯”ä¾‹ ç”»ç‚¹
 */
 void MyCanvas::OnPaint(wxPaintEvent & event)
 {
@@ -548,9 +548,9 @@ double MyCanvas::YDC2World(double y)
 {
 	return(m_rWorld.MaxY - m_DC2World * (y + 1));
 }
-// Í¼²ãµÄ×İºá±È ´°¿ÚµÄ×İºá±È
-// Í¼²ãµÄ×İºá±È½ÏĞ¡
-// Í¼²ãµÄyÀ©´óÒ»Ğ©
+// å›¾å±‚çš„çºµæ¨ªæ¯” çª—å£çš„çºµæ¨ªæ¯”
+// å›¾å±‚çš„çºµæ¨ªæ¯”è¾ƒå°
+// å›¾å±‚çš„yæ‰©å¤§ä¸€äº›
 OGREnvelope MyCanvas::GetWorld(wxRect rClient)
 {
 	return m_Extent;
@@ -587,8 +587,8 @@ OGRRawPoint MyCanvas::GetWorld(wxRect rClient, wxPoint ptClient)
 		);
 }
 
-// Í¼²ãºÍ´°¿ÚµÄ¿í¶È±È ¼ÆËãÁËÒ»ÏÂ
-// °ÑÍ¼²ãµÄ×ø±ê°´ÕÕ±ÈÀı×ªÎª´°¿ÚµÄ
+// å›¾å±‚å’Œçª—å£çš„å®½åº¦æ¯” è®¡ç®—äº†ä¸€ä¸‹
+// æŠŠå›¾å±‚çš„åæ ‡æŒ‰ç…§æ¯”ä¾‹è½¬ä¸ºçª—å£çš„
 void MyCanvas::SetExtent()
 {
 	m_rDC = GetClientRect(); 

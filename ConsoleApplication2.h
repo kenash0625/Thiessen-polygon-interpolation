@@ -1,4 +1,4 @@
-//#define  WXUSINGDLL
+﻿//#define  WXUSINGDLL
 #include <wx/wx.h>
 #include <wx/grid.h>
 #include <list>

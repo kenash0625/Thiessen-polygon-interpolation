@@ -1,4 +1,4 @@
-// Staion2PlainRain.cpp : ¶¨Òå DLL Ó¦ÓÃ³ÌÐòµÄµ¼³öº¯Êý¡£
+ï»¿// Staion2PlainRain.cpp : å®šä¹‰ DLL åº”ç”¨ç¨‹åºçš„å¯¼å‡ºå‡½æ•°ã€‚
 
 #define MINDIST 10
 
@@ -66,14 +66,14 @@ void st2ws::thiessen_calcz(int sitecnt, double *sitex, double *sitey, double *si
 			}
 		}
 	}
-	//Á÷ÓòÏÂ±ê-²âÕ¾ÏÂ±ê-È¨ÖØ
+	//æµåŸŸä¸‹æ ‡-æµ‹ç«™ä¸‹æ ‡-æƒé‡
 	pweight->weights.resize(cellcnt);
 	for (p2 = cellarea, p1 = cellz, geomRun = cells, idxrun = 0; idxrun < cellcnt; idxrun++, geomRun++, p1++, p2++)
 	{
 		*p1 = 0;
 		int calc = 0;
 
-		//Á½ÖÖÇé¿ö Á÷Óò±»Ò»¸ö¶à±ßÐÎ°üº¬ »ò Á÷ÓòÓë¶à¸ö¶à±ßÐÎÏà½»
+		//ä¸¤ç§æƒ…å†µ æµåŸŸè¢«ä¸€ä¸ªå¤šè¾¹å½¢åŒ…å« æˆ– æµåŸŸä¸Žå¤šä¸ªå¤šè¾¹å½¢ç›¸äº¤
 		for (std::vector<int>::iterator i = sitePoly2.begin(); i != sitePoly2.end(); i++)
 		{
 			const geos::geom::Polygon *a = dynamic_cast<const geos::geom::Polygon*>(polys->getGeometryN(*i));

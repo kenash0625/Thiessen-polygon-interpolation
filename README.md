@@ -1,7 +1,7 @@
-# fantastic-guacamole
-¸ø³öÕ¾µã×ø±ê ºÍ Á÷Óò±ß½ç
-¼ÆËãÕ¾µã¶ÔÓ¦µÄÌ©É­¶à±ßĞÎ ºÍ ÓëÃ¿¸öÁ÷ÓòµÄÏà½»µÄ¶à±ßĞÎÃæ»ıËùÕ¼Á÷ÓòÃæ»ıµÄÈ¨ÖØ
-½çÃæÕ¹Ê¾
+ï»¿# fantastic-guacamole
+ç»™å‡ºç«™ç‚¹åæ ‡ å’Œ æµåŸŸè¾¹ç•Œ
+è®¡ç®—ç«™ç‚¹å¯¹åº”çš„æ³°æ£®å¤šè¾¹å½¢ å’Œ ä¸æ¯ä¸ªæµåŸŸçš„ç›¸äº¤çš„å¤šè¾¹å½¢é¢ç§¯æ‰€å æµåŸŸé¢ç§¯çš„æƒé‡
+ç•Œé¢å±•ç¤º
 
 In order to achieve accurate estimation of the spatial distribution of rainfall, it is
 necessary to use interpolation methods,this is the area weighted Thiessen polygon method.
@@ -9,9 +9,12 @@ necessary to use interpolation methods,this is the area weighted Thiessen polygo
 using wxWidgets gdal2.1.0 geos3.6.1
 
 Edited geos-3.6.1\src\triangulate\quadedge\QuadEdgeSubdivision.cpp line 588 ,added the following :
-	cellPoly->setUserData(reinterpret_cast<void*>(geomFact.createPoint(c)));
-	return cellPoly;
+	
+		cellPoly->setUserData(reinterpret_cast<void*>(geomFact.createPoint(c)));
+		return cellPoly;
+
 Edited geos-3.6.1\src\triangulate\VoronoiDiagramBuilder.cpp line 136 ,moved one line:
+
 		else if(clipEnv.intersects(g->getEnvelopeInternal()))
 		{
 			result.reset( clipPoly->intersection(g) );
