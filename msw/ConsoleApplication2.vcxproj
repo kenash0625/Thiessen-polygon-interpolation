@@ -28,6 +28,9 @@
     <ClInclude Include="..\OGRFile.h" />
     <ClInclude Include="..\st2ws.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\README.md" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0409CBCC-B31A-4993-B5B5-F363B492DC9F}</ProjectGuid>
     <SccProjectName>SAK</SccProjectName>
