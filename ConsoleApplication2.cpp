@@ -6,7 +6,7 @@
 #include "st2ws.h"
 #include <fstream>
 #include <thread>
-#include <geos/geom/geometry.h>
+#include <geos/geom/Geometry.h>
 #include <geos/geom/Point.h>
 #include <geos/geom/GeometryFactory.h>
 #include <geos/geom/Polygon.h>
@@ -19,11 +19,11 @@
 #include <wx/stdpaths.h>
 #include <wx/filename.h>
 struct st2ws g_st2ws;
-int main(int, wchar_t*[])
+/*int main(int, wchar_t*[])
 {
 	return WinMain(::GetModuleHandle(NULL), NULL, NULL, SW_SHOWNORMAL);
 }
-
+*/
 enum
 {
 	ID_Hello = 1,

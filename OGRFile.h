@@ -1,7 +1,7 @@
 ﻿// #include "..\\include\\gdal_priv.h"
 // #include "..\\include\\gdal_alg.h"
 
-#include ".\\include\\ogrsf_frmts.h"
+#include "ogrsf_frmts.h"
 //#include "..\\include\\gdal.h"
 #include <string>
 using namespace std;
