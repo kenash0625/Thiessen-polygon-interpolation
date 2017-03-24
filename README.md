@@ -24,3 +24,5 @@ Edited geos-3.6.1\src\triangulate\VoronoiDiagramBuilder.cpp line 136 ,moved one 
 		{result->setUserData(((Geometry*)g)->getUserData()); // moved
 			clipped->push_back(result.release());
 		}
+
+build and run on ubuntu 16.04 lts and windows
