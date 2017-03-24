@@ -231,7 +231,7 @@ void st2ws::rand_run()
 		begin_st_rain();
 		for (int j = 0; j < nStsize; j++)
 		{
-			int drun = (double)rand() / (RAND_MAX + 1) * (range_max - range_min)+ range_min;
+			int drun = rand()%100-50;
 			st_rain(drun);
 		}
 		calc(st2ws::DYNAMIC, st2ws::THIESSEN);

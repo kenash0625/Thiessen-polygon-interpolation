@@ -314,6 +314,11 @@ MyCanvas::MyCanvas(wxWindow *parent):wxScrolledWindow(parent, -1, wxPoint(0,0), 
 	string str = exeFile.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR).ToStdString();
 	OGRFile oStfile(str+"/test/JCZD.shp");
 	OGRFile oWsfile(str+"/test/WATA.shp");	
+	if(!oStfile || !oWsfile)
+	{
+		cout<<str<<endl;
+		return;
+	}
 	OGRFeature *pFeature;
 	int nRainsz=0,nStsize;
 	oWsfile.m_pLayer->GetExtent(&m_Extent);	
@@ -441,17 +446,26 @@ void MyCanvas::Hello()
 	memdc.SelectObject(bitmap);
 	memdc.SetBrush(brush);
 	memdc.SetPen(pen);
-	//memdc.SetBackground(wxBrush(wxColour(255, 255, 255), wxBRUSHSTYLE_SOLID));
+	memdc.SetBackground(wxBrush(wxColour(255, 255, 255), wxBRUSHSTYLE_SOLID));
 	memdc.Clear();
 	//all cells
 	list<vector<int>>::iterator itpolys = cells.begin();
 	list<vector<OGRRawPoint>>::iterator itpts = cellpts.begin();
 	vector<wxPoint> wxpts;
-	wxpts.resize(std::max_element(cellpts.begin(), cellpts.end(), [](vector<OGRRawPoint> &a, vector<OGRRawPoint> &b)->bool {return a.size() < b.size(); })->size());
+	wxpts.reserve(std::max_element(cellpts.begin(), cellpts.end(), [](vector<OGRRawPoint> &a, vector<OGRRawPoint> &b)->bool {return a.size() < b.size(); })->size());
 	for (; itpolys != cells.end(); itpolys++, itpts++)
 	{
+		wxpts.resize(itpts->size());
 		std::transform(itpts->begin(), itpts->end(), wxpts.begin(), [&](OGRRawPoint &opt)->wxPoint {wxPoint p; XYWorld2DC(&p, &opt); return p; });
-		memdc.DrawPolyPolygon(itpolys->size(), itpolys->data(), wxpts.data(), 0, 0, wxWINDING_RULE);
+		if(itpolys->size()>1)
+		{
+			memdc.DrawPolyPolygon(itpolys->size(), itpolys->data(), wxpts.data(), 0, 0, wxWINDING_RULE);
+		}
+		else if(itpolys->size()==1)
+		{
+			memdc.DrawPolygon(wxpts.size(),wxpts.data());
+		}
+		
 	}
 	//identified cell
 	if(wsident>=0 && wsident<g_st2ws.vwsgeom.size())
@@ -463,7 +477,14 @@ void MyCanvas::Hello()
 		extractPolygon(g_st2ws.vwsgeom[wsident], polys, polypts);
 		vector<wxPoint> wxpolypts(polypts.size());
 		std::transform(polypts.begin(), polypts.end(), wxpolypts.begin(), [&](OGRRawPoint &opt)->wxPoint {wxPoint p; XYWorld2DC(&p, &opt); return p; });
-		memdc.DrawPolyPolygon(polys.size(), polys.data(), wxpolypts.data(), 0, 0, wxPolygonFillMode::wxWINDING_RULE);
+		if(polys.size()>1)
+		{
+			memdc.DrawPolyPolygon(polys.size(), polys.data(), wxpolypts.data(), 0, 0, wxPolygonFillMode::wxWINDING_RULE);
+		}
+		else if(polys.size()==1)
+		{
+			memdc.DrawPolygon(wxpolypts.size(), wxpolypts.data(), 0, 0, wxPolygonFillMode::wxWINDING_RULE);
+		}
 	}
 	//all sites
 	wxBrush p1brush(wxColour(0, 0, 0), wxBRUSHSTYLE_SOLID);
@@ -484,7 +505,14 @@ void MyCanvas::Hello()
 		memdc.SetPen(pen);
 		vector<wxPoint> wxpts(g_st2ws.weightrun->voropts.size());
 		std::transform(g_st2ws.weightrun->voropts.begin(), g_st2ws.weightrun->voropts.end(), wxpts.begin(), [&](OGRRawPoint &opt)->wxPoint {wxPoint p; XYWorld2DC(&p, &opt); return p; });
-		memdc.DrawPolyPolygon(g_st2ws.weightrun->voropoly.size(), g_st2ws.weightrun->voropoly.data(), wxpts.data(), 0, 0, wxWINDING_RULE);
+		if(g_st2ws.weightrun->voropoly.size()>1)
+		{	
+			memdc.DrawPolyPolygon(g_st2ws.weightrun->voropoly.size(), g_st2ws.weightrun->voropoly.data(), wxpts.data(), 0, 0, wxWINDING_RULE);
+		}
+		else if(g_st2ws.weightrun->voropoly.size()==1)
+		{
+			memdc.DrawPolygon(wxpts.size(), wxpts.data(), 0, 0, wxWINDING_RULE);
+		}
 		//voronoi sites
 		wxPen rpen(wxColour(255, 0, 0), 1, wxPENSTYLE_SOLID);
 		wxBrush p2brush(wxColour(255, 0, 0), wxBRUSHSTYLE_SOLID);
