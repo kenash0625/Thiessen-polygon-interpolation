@@ -6,31 +6,21 @@
 
 #include <fstream>
 #include <thread>
-#include <geos/geom/Geometry.h>
-#include <geos/geom/Point.h>
-#include <geos/geom/GeometryFactory.h>
-#include <geos/geom/Polygon.h>
-#include <geos/geom/LineString.h>
-#include <geos/operation/buffer/BufferOp.h>
+
 #include <wx/headerctrl.h>
 #include <wx/sizer.h>
 #include <wx/gbsizer.h>
 #include <wx/splitter.h>
 #include <wx/stdpaths.h>
 #include <wx/filename.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 //#include <occi.h>
 //#pragma comment(lib,"oraocci11.lib")
 string ExePath;
-int main(int, wchar_t*[])
-{
-	//oracle::occi::Environment::createEnvironment();
-	struct _stat a;
-	auto aa =_stat("D:\\MyFirstProject\\fantastic-guacamole.git\\trunk\\msw\\..\\Debug/test/ast.shp", &a);
-	unlink("D:\\test\\test\\ast.shp");
-	return WinMain(::GetModuleHandle(NULL), NULL, NULL, SW_SHOWNORMAL);
-}
+//int main(int, wchar_t*[])
+//{
+//	//oracle::occi::Environment::createEnvironment();
+//	return WinMain(::GetModuleHandle(NULL), NULL, NULL, SW_SHOWNORMAL);
+//}
 
 
 enum
@@ -59,7 +49,7 @@ EVT_RIGHT_DOWN(MyCanvas::OnMouseRDown)
 
 wxEND_EVENT_TABLE()
 
-wxIMPLEMENT_APP(MyApp);
+wxIMPLEMENT_APP_CONSOLE(MyApp);
 
 bool MyApp::OnInit()
 {
