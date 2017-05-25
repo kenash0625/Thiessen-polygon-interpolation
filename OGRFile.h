@@ -36,6 +36,7 @@ public:
 	void close();
 	void open(openmode op=in);
 	void create(OGRSpatialReference *p=nullptr);
+	static void extractPolygon(OGRGeometry * pGeom, vector<int>& vParts, vector<OGRRawPoint>& vPts);
 	operator bool();
 	GEOSContextHandle_t geosctx();
 };

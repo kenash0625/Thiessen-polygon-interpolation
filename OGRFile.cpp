@@ -123,7 +123,48 @@ void OGRFile::create(OGRSpatialReference *p)
 	if (m_pDrv != nullptr)
 	{
 		m_pDrv->QuietDelete(m_name.c_str());
-		m_poDS = m_pDrv->Create(m_name.c_str(), 0, 0, 0, GDT_Unknown, NULL);
+		m_poDS = m_pDrv->Create(m_name.c_str(), 0, 0, 0, GDT_Unknown, NULL);//create 空文件夹才可以create?
 		if(m_poDS)	m_pLayer = m_poDS->CreateLayer("out", p, m_gt, NULL);
+	}
+}
+void OGRFile::extractPolygon(OGRGeometry *pGeom, vector<int> &vParts, vector<OGRRawPoint> &vPts)
+{
+	if (wkbPolygon == pGeom->getGeometryType())
+	{
+		OGRPolygon *pPoly = (OGRPolygon*)pGeom;
+		OGRLinearRing *pRing = pPoly->getExteriorRing();
+		vector<OGRRawPoint> pttmp(pRing->getNumPoints());
+		pRing->getPoints(pttmp.data());
+		vParts.push_back(pttmp.size());
+		vPts.insert(vPts.end(), pttmp.begin(), pttmp.end());
+		for (int j = 0; j < pPoly->getNumInteriorRings(); j++)
+		{
+			OGRLinearRing *pRing = pPoly->getInteriorRing(j);
+			vector<OGRRawPoint> pttmp(pRing->getNumPoints());
+			pRing->getPoints(pttmp.data());
+			vParts.push_back(pttmp.size());
+			vPts.insert(vPts.end(), pttmp.begin(), pttmp.end());
+		}
+	}
+	else if (wkbMultiPolygon == pGeom->getGeometryType())
+	{
+		OGRMultiPolygon *pmPoly = (OGRMultiPolygon*)pGeom;
+		for (int i = 0; i < pmPoly->getNumGeometries(); i++)
+		{
+			OGRPolygon *pPoly = (OGRPolygon*)pmPoly->getGeometryRef(i);
+			OGRLinearRing *pRing = pPoly->getExteriorRing();
+			vector<OGRRawPoint> pttmp(pRing->getNumPoints());
+			pRing->getPoints(pttmp.data());
+			vParts.push_back(pttmp.size());
+			vPts.insert(vPts.end(), pttmp.begin(), pttmp.end());
+			for (int j = 0; j < pPoly->getNumInteriorRings(); j++)
+			{
+				OGRLinearRing *pRing = pPoly->getInteriorRing(j);
+				vector<OGRRawPoint> pttmp(pRing->getNumPoints());
+				pRing->getPoints(pttmp.data());
+				vParts.push_back(pttmp.size());
+				vPts.insert(vPts.end(), pttmp.begin(), pttmp.end());
+			}
+		}
 	}
 }

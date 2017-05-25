@@ -1,15 +1,10 @@
-﻿//#define  WXUSINGDLL
+﻿#define  WXUSINGDLL
 #include <wx/wx.h>
 #include <wx/grid.h>
 #include <list>
 #include <vector>
-namespace geos
-{
-	namespace geom
-	{
-		class Geometry;
-	}
-}
+#include "st2ws.h"
+
 class MyFrame;
 class MyCanvas;
 class MyApp : public wxApp
@@ -34,16 +29,29 @@ private:
 	wxDECLARE_EVENT_TABLE();
 };
 
+class MyLayer
+{
+public:
+	wxPen origpen, identpen;
+	wxBrush origbrush, identbrush;
+	vector<int> identfid;
+	string ofilepath;
+	OGRFile ofile;
+	void Draw(wxMemoryDC &, OGRFeature *pFea,MyCanvas &canv);
+
+	void Draw(wxMemoryDC &,MyCanvas &canv);
+	MyLayer(const string &str);
+};
 class MyCanvas :public wxScrolledWindow
 {
 	wxPoint pt1,pt2,ptident;
-	int wsident;
-
 	wxBitmap bitmap;
 	wxMemoryDC memdc;
 	double zfac;
-	void extractPolygon(OGRGeometry *pGeom,vector<int> &vParts,vector<OGRRawPoint> &vPts);
-	void extractPolygon(geos::geom::Geometry *pGeom, vector<int> &vParts, vector<OGRRawPoint> &vPts);
+	
+	int useablest;
+	double d1stval;
+	map<string, st2ws_ws> *wscdweight;
 public:	
 	enum Mode{Pan,ZoomIn,ZoomOut};
 	Mode mode;
@@ -53,24 +61,21 @@ public:
 	void OnMouseLDown(wxMouseEvent &event);
 	void OnMouseLUp(wxMouseEvent &event);
 	void OnMouseRDown(wxMouseEvent &event);
-	void Hello();
 	void Zoom(double);
 
 	double						m_World2DC, m_DC2World, m_Scale;
 	OGREnvelope					m_rWorld, m_Extent,m_layerEnv;
 	wxRect m_rDC;
-	list<vector<int>> cells;
-	list<vector<OGRRawPoint>> cellpts;
-	list<vector<OGRRawPoint>> sitepolys;
-	vector<OGRRawPoint> sitecoords;
+	vector<MyLayer *> m_layers;
+	
 	double XWorld2DC(double x, bool bRound = true);
 	double YWorld2DC(double y, bool bRound = true);
-
-	OGREnvelope GetWorld(wxRect rClient);
-	OGRRawPoint GetWorld(wxRect rClient, wxPoint ptClient);
-	void SetExtent();
 	void XYWorld2DC(wxPoint *dst, OGRRawPoint *src);
 	double XDC2World(double x);
 	double YDC2World(double y);
+	OGREnvelope GetWorld(wxRect rClient);
+	OGRRawPoint GetWorld(wxRect rClient, wxPoint ptClient);
+	void SetExtent();
+	void RandRun();
 	wxDECLARE_EVENT_TABLE();
 };

@@ -3,7 +3,7 @@
 
 #include "OGRFile.h"
 #include "ConsoleApplication2.h"
-#include "st2ws.h"
+
 #include <fstream>
 #include <thread>
 #include <geos/geom/Geometry.h>
@@ -18,12 +18,21 @@
 #include <wx/splitter.h>
 #include <wx/stdpaths.h>
 #include <wx/filename.h>
-struct st2ws g_st2ws;
-/*int main(int, wchar_t*[])
+#include <sys/types.h>
+#include <sys/stat.h>
+//#include <occi.h>
+//#pragma comment(lib,"oraocci11.lib")
+string ExePath;
+int main(int, wchar_t*[])
 {
+	//oracle::occi::Environment::createEnvironment();
+	struct _stat a;
+	auto aa =_stat("D:\\MyFirstProject\\fantastic-guacamole.git\\trunk\\msw\\..\\Debug/test/ast.shp", &a);
+	unlink("D:\\test\\test\\ast.shp");
 	return WinMain(::GetModuleHandle(NULL), NULL, NULL, SW_SHOWNORMAL);
 }
-*/
+
+
 enum
 {
 	ID_Hello = 1,
@@ -53,7 +62,29 @@ wxEND_EVENT_TABLE()
 wxIMPLEMENT_APP(MyApp);
 
 bool MyApp::OnInit()
-{	
+{
+	wxStandardPathsBase& stdp = wxStandardPaths::Get();
+	wxFileName exeFile(stdp.GetExecutablePath());
+	ExePath = exeFile.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR).ToStdString();
+
+	OGRFile oStfile(ExePath + "test/JCZD.shp"), oWsfile(ExePath + "test/WATA.shp");
+	OGRFeature *pFeature;
+	oWsfile.m_pLayer->ResetReading();
+	oStfile.m_pLayer->ResetReading();
+	for (; pFeature = oWsfile.m_pLayer->GetNextFeature(); OGRFeature::DestroyFeature(pFeature))
+	{
+		string wscd = (pFeature->GetFieldAsString("WSCD"));
+		add_ws(wscd);
+	}
+	for (; pFeature = oStfile.m_pLayer->GetNextFeature(); OGRFeature::DestroyFeature(pFeature))
+	{
+		OGRPoint *pt = (OGRPoint*)pFeature->GetGeometryRef();
+		string stcd = pFeature->GetFieldAsString("STCD");
+		add_st(stcd, pt->getX(), pt->getY());
+	}
+	set_ws_shp(ExePath + "test/WATA.shp");
+	oStfile.close();
+	oWsfile.close();
 	frame = new MyFrame();
 	frame->Show(true);
 	return true; 
@@ -93,25 +124,6 @@ MyFrame::MyFrame() : wxFrame(NULL, wxID_ANY, "Sample", wxDefaultPosition, wxSize
 	sitegrid->SetCellValue(0, 1, "WEIGHT");
 	sitegrid->SetCellValue(0, 2, "VALUE");
 
-	//wxGridBagSizer *gbSizer = new wxGridBagSizer();
-	//gbSizer->Add(canvas, wxGBPosition(0,0), wxGBSpan(2,2), wxALIGN_CENTER | wxALL, 5);
-	//gbSizer->Add(cellgrid, wxGBPosition(0, 2), wxGBSpan(1, 1), wxALIGN_LEFT | wxALL, 2);
-	//gbSizer->Add(sitegrid, wxGBPosition(1, 2), wxGBSpan(1, 1), wxALIGN_LEFT | wxALL, 2);
-	//wxGridSizer *gridsizer = new wxGridSizer(1, 5, 5);
-	//gridsizer->Add(cellgrid,wxSizerFlags().Align(wxALIGN_CENTER_VERTICAL));
-	//gridsizer->Add(sitegrid,wxSizerFlags().Align(wxGROW | wxALIGN_CENTER_VERTICAL));
-	//wxGridSizer *gsizer = new wxGridSizer(2, 5,5 );
-	//gsizer->Add(canvas, wxSizerFlags().Align(wxALIGN_TOP));
-	//gsizer->Add(gridsizer);
-
-	//SetSizerAndFit(gbSizer);
-	//Centre();
-
-	// If you use non-zero gravity you must initialize the splitter with its
-	// correct initial size, otherwise it will change the sash position by a
-	// huge amount when it's resized from its initial default size to its real
-	// size when the frame lays it out. This wouldn't be necessary if default
-	// zero gravity were used (although it would do no harm neither).
 	mySplitter->SetSize(GetClientSize());
 	mySplitter->SetSashGravity(1.0);
 	gridSplitter->SetSize(GetClientSize());
@@ -129,9 +141,8 @@ void MyFrame::OnHello(wxCommandEvent& event)
 	canvas->SetExtent();
 }
 void MyFrame::OnRandRun(wxCommandEvent& event)
-{
-	g_st2ws.rand_run();
-	canvas->SetExtent();
+{	
+	canvas->RandRun();
 }
 
 void MyFrame::ZoomIn(wxCommandEvent &)
@@ -149,202 +160,37 @@ void MyFrame::Pan(wxCommandEvent &)
 	canvas->mode = MyCanvas::Mode::Pan;
 }
 
-/*
-现象：如果流域多边形自交 并且 被泰森多边形切割 那么不会计算权重
-即 函数WSRAIN返回-10 有外环的可以intersection 自交的不可以
-重现：使用 柘荣 的 20160101-预报模型（一）_1_1 的流域shp（fid=2）和测站shp
-函数： SelfIntersectGeom 用于调整点集 使多边形不自交
-*/
-void SelfIntersectPt(vector<OGRRawPoint> &vpts)
+MyCanvas::MyCanvas(wxWindow *parent):wxScrolledWindow(parent, -1, wxPoint(0,0), wxSize(300,400), wxFULL_REPAINT_ON_RESIZE),zfac(1),mode(Mode::Pan),wscdweight(nullptr)
 {
-	for (int p0 = 0, p1 = 1, p2 = 2, p3 = 3; p3 < vpts.size(); ++p0, ++p1, ++p2, ++p3)
-	{
-		OGRLineString ls0, ls1;
-		ls0.addPoint(vpts.at(p0).x, vpts.at(p0).y);
-		ls0.addPoint(vpts.at(p1).x, vpts.at(p1).y);
-		ls1.addPoint(vpts.at(p2).x, vpts.at(p2).y);
-		ls1.addPoint(vpts.at(p3).x, vpts.at(p3).y);
-		if (ls0.Touches(&ls1))
-		{
-			int i(0);
-			--i;
-		}
-		else if (ls0.Intersects(&ls1))//自交的情况 0123->0x21x3
-		{
-			OGRGeometry *pInterGeom = ls0.Intersection(&ls1);
-			OGRPoint *pInterPt = (OGRPoint *)pInterGeom;
+	int u;
+	double d;
+	wscdweight = &rand_run(ExePath + "test\\a", u, d);
 
-			OGRRawPoint pt1 = vpts.at(p1), pinter(pInterPt->getX(), pInterPt->getY());
-			vpts.at(p1) = vpts.at(p2);
-			vpts.at(p2) = pt1;
-			vpts.insert(vpts.begin() + p1, pinter);
-			vpts.insert(vpts.begin() + p3, pinter);
+	MyLayer *pst = new MyLayer(ExePath + "test/ast.shp"), *pws = new MyLayer(ExePath + "test/WATA.shp"),*pvor=new MyLayer(ExePath+"test/avoronoi.shp");
+	wxPen pen(wxColour(0, 0, 0), 1, wxPENSTYLE_SOLID), identpen(wxColour(255, 0, 0), 2, wxPENSTYLE_SOLID);
+	wxBrush brush(wxColour(255, 0, 0), wxBRUSHSTYLE_TRANSPARENT), p1brush(wxColour(0, 0, 0), wxBRUSHSTYLE_SOLID);
 
-		}
-	}
+	pst->origpen = pen;
+	pst->identpen = identpen;
+	pst->origbrush = p1brush;
+	pst->identbrush = brush;
 
-}
-void SelfIntersectGeom(OGRGeometry *pGeom)
-{
-	if (pGeom->getGeometryType() == wkbPolygon)
-	{
-		OGRPolygon *pPoly = (OGRPolygon *)pGeom;
-		vector<OGRRawPoint> vpts(pPoly->getExteriorRing()->getNumPoints());
-		pPoly->getExteriorRing()->getPoints(vpts.data());
-		SelfIntersectPt(vpts);
-		pPoly->getExteriorRing()->setPoints(vpts.size(), vpts.data());
-	}
-	else if (pGeom->getGeometryType() == wkbMultiPolygon)
-	{
-		OGRMultiPolygon *pMp = (OGRMultiPolygon *)pGeom;
-		for (int i = 0; i < pMp->getNumGeometries(); ++i)
-		{
-			OGRPolygon *pPoly = (OGRPolygon *)pMp->getGeometryRef(i);
-			vector<OGRRawPoint> vpts(pPoly->getExteriorRing()->getNumPoints());
-			pPoly->getExteriorRing()->getPoints(vpts.data());
-			SelfIntersectPt(vpts);
-			pPoly->getExteriorRing()->setPoints(vpts.size(), vpts.data());
-		}
-	}
-}
+	pws->origpen = pen;
+	pws->identpen = identpen;
+	pws->origbrush = wxBrush(wxColour(255, 255, 255), wxBRUSHSTYLE_TRANSPARENT);
+	pws->identbrush = pws->origbrush;
 
-void MyCanvas::extractPolygon(OGRGeometry *pGeom, vector<int> &vParts, vector<OGRRawPoint> &vPts)
-{
-	if (wkbPolygon == pGeom->getGeometryType())
-	{
-		OGRPolygon *pPoly = (OGRPolygon*)pGeom;
-		OGRLinearRing *pRing = pPoly->getExteriorRing();
-		vector<OGRRawPoint> pttmp(pRing->getNumPoints());
-		pRing->getPoints(pttmp.data());
-		vParts.push_back(pttmp.size());
-		vPts.insert(vPts.end(), pttmp.begin(), pttmp.end());
-		for (int j = 0; j < pPoly->getNumInteriorRings(); j++)
-		{
-			OGRLinearRing *pRing = pPoly->getInteriorRing(j);
-			vector<OGRRawPoint> pttmp(pRing->getNumPoints());
-			pRing->getPoints(pttmp.data());
-			vParts.push_back(pttmp.size());
-			vPts.insert(vPts.end(), pttmp.begin(), pttmp.end());
-		}
-	}
-	else if (wkbMultiPolygon == pGeom->getGeometryType())
-	{
-		OGRMultiPolygon *pmPoly = (OGRMultiPolygon*)pGeom;
-		for (int i = 0; i < pmPoly->getNumGeometries(); i++)
-		{
-			OGRPolygon *pPoly = (OGRPolygon*)pmPoly->getGeometryRef(i);
-			OGRLinearRing *pRing = pPoly->getExteriorRing();
-			vector<OGRRawPoint> pttmp(pRing->getNumPoints());
-			pRing->getPoints(pttmp.data());
-			vParts.push_back(pttmp.size());
-			vPts.insert(vPts.end(), pttmp.begin(), pttmp.end());
-			for (int j = 0; j < pPoly->getNumInteriorRings(); j++)
-			{
-				OGRLinearRing *pRing = pPoly->getInteriorRing(j);
-				vector<OGRRawPoint> pttmp(pRing->getNumPoints());
-				pRing->getPoints(pttmp.data());
-				vParts.push_back(pttmp.size());
-				vPts.insert(vPts.end(), pttmp.begin(), pttmp.end());
-			}
-		}
-	}
-}
+	pvor->origpen = pen;
+	pvor->identpen = identpen;
+	pvor->origbrush = wxBrush(wxColour(255, 255, 255), wxBRUSHSTYLE_TRANSPARENT);
+	pvor->identbrush = pws->origbrush;
 
-void MyCanvas::extractPolygon(geos::geom::Geometry *pGeom, vector<int> &polys, vector<OGRRawPoint> &polypts)
-{
-	geos::geom::GeometryTypeId geomType = pGeom->getGeometryTypeId();
-	if (geomType==geos::geom::GeometryTypeId::GEOS_MULTIPOLYGON)
-	{
-		geos::geom::MultiPolygon *pmp = dynamic_cast<geos::geom::MultiPolygon*>(pGeom);
-		for (int z = 0; z < pmp->getNumGeometries();z++)
-		{
-			const geos::geom::Polygon *geospoly = dynamic_cast<const geos::geom::Polygon*>(pmp->getGeometryN(z));
-			const geos::geom::LineString *geosls = geospoly->getExteriorRing();
-			polys.push_back(geosls->getNumPoints());
-			for (int i = 0; i < geosls->getNumPoints(); i++)
-			{
-				geos::geom::Point *geosppp = geosls->getPointN(i);
-				OGRRawPoint opt(geosppp->getX(), geosppp->getY());
-				polypts.push_back(opt);
-			}
-			for (int i = 0; i < geospoly->getNumInteriorRing(); i++)
-			{
-				const geos::geom::LineString *geosls = geospoly->getInteriorRingN(i);
-				polys.push_back(geosls->getNumPoints());
-				for (int j = 0; j < geosls->getNumPoints(); j++)
-				{
-					geos::geom::Point *geosppp = geosls->getPointN(i);
-					OGRRawPoint opt(geosppp->getX(), geosppp->getY());
-					polypts.push_back(opt);
-				}
-			}
-		}
-	}
-	else if (geomType == geos::geom::GeometryTypeId::GEOS_POLYGON)
-	{
-		geos::geom::Polygon *geospoly = dynamic_cast<geos::geom::Polygon*>(pGeom);
-		const geos::geom::LineString *geosls = geospoly->getExteriorRing();
-		polys.push_back(geosls->getNumPoints());
-		for (int i = 0; i < geosls->getNumPoints(); i++)
-		{
-			geos::geom::Point *geosppp = geosls->getPointN(i);
-			OGRRawPoint opt(geosppp->getX(), geosppp->getY());
-			polypts.push_back(opt);
-		}
-		for (int i = 0; i < geospoly->getNumInteriorRing(); i++)
-		{
-			const geos::geom::LineString *geosls = geospoly->getInteriorRingN(i);
-			polys.push_back(geosls->getNumPoints());
-			for (int j = 0; j < geosls->getNumPoints(); j++)
-			{
-				geos::geom::Point *geosppp = geosls->getPointN(i);
-				OGRRawPoint opt(geosppp->getX(), geosppp->getY());
-				polypts.push_back(opt);
-			}
-		}
-	}
-	
-}
-
-MyCanvas::MyCanvas(wxWindow *parent):wxScrolledWindow(parent, -1, wxPoint(0,0), wxSize(300,400), wxFULL_REPAINT_ON_RESIZE),zfac(1),wsident(-1),mode(Mode::Pan)
-{
-	wxString strAppPath;
-	wxStandardPathsBase& stdp = wxStandardPaths::Get();
-	wxFileName exeFile(stdp.GetExecutablePath());
-	string str = exeFile.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR).ToStdString();
-	OGRFile oStfile(str+"/test/JCZD.shp");
-	OGRFile oWsfile(str+"/test/WATA.shp");	
-	if(!oStfile || !oWsfile)
-	{
-		cout<<str<<endl;
-		return;
-	}
-	OGRFeature *pFeature;
-	int nRainsz=0,nStsize;
-	oWsfile.m_pLayer->GetExtent(&m_Extent);	
-	oStfile.m_pLayer->GetExtent(&m_layerEnv);
-	m_layerEnv.Merge(m_Extent);
-	oWsfile.m_pLayer->ResetReading();
-	oStfile.m_pLayer->ResetReading();
-	for (; pFeature = oWsfile.m_pLayer->GetNextFeature();OGRFeature::DestroyFeature(pFeature))
-	{
-		OGRGeometry *pGeom = pFeature->GetGeometryRef();
-		geos::geom::Geometry *pGeosPoly  = (geos::geom::Geometry*)pGeom->exportToGEOS(oWsfile.geosctx());
-		g_st2ws.add_ws(pGeosPoly, std::to_string(pFeature->GetFID()));
-		
-		vector<int> ints;
-		vector<OGRRawPoint> pts;
-		extractPolygon(pGeom, ints, pts);
-		cells.emplace_back(ints);
-		cellpts.emplace_back(pts);
-	}
-	for (nStsize=0; pFeature = oStfile.m_pLayer->GetNextFeature();nStsize++, OGRFeature::DestroyFeature(pFeature))
-	{
-		OGRPoint *pt = (OGRPoint*)pFeature->GetGeometryRef();
-		sitecoords.push_back(OGRRawPoint(pt->getX(), pt->getY()));
-		g_st2ws.add_st(pt->getX(), pt->getY(), pFeature->GetFieldAsString("STCD"));
-	}
-	g_st2ws.add_end();
+	m_layers.push_back(pst);
+	m_layers.push_back(pws);
+	m_layers.push_back(pvor);
+	pws->ofile.init(pws->ofilepath);
+	pws->ofile.m_pLayer->GetExtent(&m_Extent);
+	m_layerEnv.Merge(m_Extent);	
 
 }
 /* 
@@ -421,136 +267,60 @@ void MyCanvas::OnMouseRDown(wxMouseEvent &event)
 {
 	ptident= event.GetPosition(); 
 	OGRRawPoint optident = GetWorld(GetClientRect(), ptident);
-	const geos::geom::GeometryFactory *geomfac(geos::geom::GeometryFactory::getDefaultInstance());
-	geos::geom::Coordinate coord(optident.x, optident.y);
-	geos::geom::Point *geospt = geomfac->createPoint(coord);
-	wsident = 0;
-	for (geos::geom::Geometry*p : g_st2ws.vwsgeom)
+	OGRPoint opt(optident.x, optident.y);
+	//for (MyLayer *p : m_layers)
 	{
-		if (p->contains(geospt))
-		{		
-			break;
-		}
-		++wsident;
-	}
+		m_layers[0]->ofile.init(m_layers[0]->ofilepath);
+		MyLayer *p = m_layers[1];
+		p->ofile.init(p->ofilepath);
+		p->ofile.m_pLayer->SetAttributeFilter(nullptr);
+		p->ofile.m_pLayer->ResetReading();
+		for (OGRFeature *pFea; pFea = p->ofile.m_pLayer->GetNextFeature();OGRFeature::DestroyFeature(pFea))
+		{
+			if (pFea->GetGeometryRef()->Contains(&opt))
+			{
+				p->identfid.clear();
+				p->identfid.push_back(pFea->GetFID());
+				string cd = pFea->GetFieldAsString("WSCD");
+				if (wscdweight==nullptr || wscdweight->find(cd)==wscdweight->end())
+				{
+					continue;
+				}
+				wxGrid *sitegrid = wxGetApp().frame->sitegrid, *cellgrid = wxGetApp().frame->cellgrid;
+				sitegrid->DeleteRows(0, sitegrid->GetNumberRows());
+				sitegrid->InsertRows(0, 1 + wscdweight->at(cd).stcdweight.size());
 
+				sitegrid->SetCellValue(0, 0, "SITE");
+				sitegrid->SetCellValue(0, 1, "WEIGHT");
+				sitegrid->SetCellValue(0, 2, "VALUE");
+				int rowrun = 1;
+				m_layers[0]->identfid.clear();
+				for (auto &a : wscdweight->at(cd).stcdweight)
+				{
+					sitegrid->SetCellValue(rowrun, 0, a.first);
+					string sql = "STCD='" + a.first + "'";
+					m_layers[0]->ofile.m_pLayer->SetAttributeFilter(nullptr);
+					m_layers[0]->ofile.m_pLayer->SetAttributeFilter(sql.c_str());
+					OGRFeature *pf = m_layers[0]->ofile.m_pLayer->GetNextFeature();
+					int cnt = m_layers[0]->ofile.m_pLayer->GetFeatureCount();
+					m_layers[0]->identfid.push_back(pf->GetFID());
+					OGRFeature::DestroyFeature(pf);
+					sitegrid->SetCellValue(rowrun, 1, std::to_string(a.second / wscdweight->at(cd).area));
+					sitegrid->SetCellValue(rowrun, 2, std::to_string(get_stcds2().at(a.first).z));
+					rowrun++;
+				}
+				cellgrid->SetCellValue(1, 0, cd);
+				cellgrid->SetCellValue(1, 1, std::to_string(wscdweight->at(cd).p));
+
+				break;
+			}
+		}
+		
+		m_layers[0]->ofile.close();
+		m_layers[1]->ofile.close();
+	}
 	SetExtent();
 }
-
-void MyCanvas::Hello()
-{
-	wxSize sz = GetClientSize();
-	wxPen pen(wxColour(0, 0, 0), 1, wxPENSTYLE_SOLID);
-	wxBrush brush(wxColour(255, 255, 255), wxBRUSHSTYLE_TRANSPARENT);
-	bitmap.Create(sz);
-	memdc.SelectObject(bitmap);
-	memdc.SetBrush(brush);
-	memdc.SetPen(pen);
-	memdc.SetBackground(wxBrush(wxColour(255, 255, 255), wxBRUSHSTYLE_SOLID));
-	memdc.Clear();
-	//all cells
-	list<vector<int>>::iterator itpolys = cells.begin();
-	list<vector<OGRRawPoint>>::iterator itpts = cellpts.begin();
-	vector<wxPoint> wxpts;
-	wxpts.reserve(std::max_element(cellpts.begin(), cellpts.end(), [](vector<OGRRawPoint> &a, vector<OGRRawPoint> &b)->bool {return a.size() < b.size(); })->size());
-	for (; itpolys != cells.end(); itpolys++, itpts++)
-	{
-		wxpts.resize(itpts->size());
-		std::transform(itpts->begin(), itpts->end(), wxpts.begin(), [&](OGRRawPoint &opt)->wxPoint {wxPoint p; XYWorld2DC(&p, &opt); return p; });
-		if(itpolys->size()>1)
-		{
-			memdc.DrawPolyPolygon(itpolys->size(), itpolys->data(), wxpts.data(), 0, 0, wxWINDING_RULE);
-		}
-		else if(itpolys->size()==1)
-		{
-			memdc.DrawPolygon(wxpts.size(),wxpts.data());
-		}
-		
-	}
-	//identified cell
-	if(wsident>=0 && wsident<g_st2ws.vwsgeom.size())
-	{
-		wxPen pen(wxColour(0, 0, 255), 2, wxPENSTYLE_SOLID);
-		memdc.SetPen(pen);
-		vector<int> polys;
-		vector<OGRRawPoint> polypts;
-		extractPolygon(g_st2ws.vwsgeom[wsident], polys, polypts);
-		vector<wxPoint> wxpolypts(polypts.size());
-		std::transform(polypts.begin(), polypts.end(), wxpolypts.begin(), [&](OGRRawPoint &opt)->wxPoint {wxPoint p; XYWorld2DC(&p, &opt); return p; });
-		if(polys.size()>1)
-		{
-			memdc.DrawPolyPolygon(polys.size(), polys.data(), wxpolypts.data(), 0, 0, wxPolygonFillMode::wxWINDING_RULE);
-		}
-		else if(polys.size()==1)
-		{
-			memdc.DrawPolygon(wxpolypts.size(), wxpolypts.data(), 0, 0, wxPolygonFillMode::wxWINDING_RULE);
-		}
-	}
-	//all sites
-	wxBrush p1brush(wxColour(0, 0, 0), wxBRUSHSTYLE_SOLID);
-	memdc.SetBrush(p1brush);
-	memdc.SetPen(pen);
-	vector<OGRRawPoint>::iterator iter = sitecoords.begin();
-	for (; iter != sitecoords.end(); iter++)
-	{
-		wxPoint p;
-		XYWorld2DC(&p, &*iter);
-		memdc.DrawCircle(p, 4);
-	}
-
-	if (g_st2ws.useablest > 1) {
-		//voronoi cells
-		memdc.SetBrush(brush);
-		wxPen pen(wxColour(255, 128, 64), 2, wxPENSTYLE_SOLID);
-		memdc.SetPen(pen);
-		vector<wxPoint> wxpts(g_st2ws.weightrun->voropts.size());
-		std::transform(g_st2ws.weightrun->voropts.begin(), g_st2ws.weightrun->voropts.end(), wxpts.begin(), [&](OGRRawPoint &opt)->wxPoint {wxPoint p; XYWorld2DC(&p, &opt); return p; });
-		if(g_st2ws.weightrun->voropoly.size()>1)
-		{	
-			memdc.DrawPolyPolygon(g_st2ws.weightrun->voropoly.size(), g_st2ws.weightrun->voropoly.data(), wxpts.data(), 0, 0, wxWINDING_RULE);
-		}
-		else if(g_st2ws.weightrun->voropoly.size()==1)
-		{
-			memdc.DrawPolygon(wxpts.size(), wxpts.data(), 0, 0, wxWINDING_RULE);
-		}
-		//voronoi sites
-		wxPen rpen(wxColour(255, 0, 0), 1, wxPENSTYLE_SOLID);
-		wxBrush p2brush(wxColour(255, 0, 0), wxBRUSHSTYLE_SOLID);
-		memdc.SetBrush(p2brush);
-		memdc.SetPen(rpen);
-		for (int i = 0; i < g_st2ws.useablest; i++)
-		{
-			wxPoint p;
-			XYWorld2DC(&p, &sitecoords[g_st2ws.stidxrun[i]]);
-			memdc.DrawCircle(p, 4);
-		}
-		if (wsident>=0&&wsident<g_st2ws.weightrun->weights.size())
-		{
-			wxGrid *sitegrid = wxGetApp().frame->sitegrid,*cellgrid=wxGetApp().frame->cellgrid;
-		
-			sitegrid->DeleteRows(0,sitegrid->GetNumberRows());
-			sitegrid->InsertRows(0,1 + g_st2ws.weightrun->weights[wsident].size());
-		
-			sitegrid->SetCellValue(0, 0, "SITE");
-			sitegrid->SetCellValue(0, 1, "WEIGHT");
-			sitegrid->SetCellValue(0, 2, "VALUE");
-			int rowrun = 1;
-			for (auto &a:g_st2ws.weightrun->weights[wsident])
-			{
-				sitegrid->SetCellValue(rowrun,0,g_st2ws.vstcdrun[a.first]);
-				sitegrid->SetCellValue(rowrun, 1, std::to_string(a.second/g_st2ws.wsarea[wsident]));
-				sitegrid->SetCellValue(rowrun, 2, std::to_string(g_st2ws.stdrprun[a.first]));
-				rowrun++;
-			}
-			cellgrid->SetCellValue(1, 0, g_st2ws.vwscd[wsident]);
-			cellgrid->SetCellValue(1, 1,  std::to_string(g_st2ws.wsdrp[wsident]));
-		}
-
-	}
-
-	memdc.SelectObject(wxNullBitmap);
-}
-
 
 double MyCanvas::XWorld2DC(double x, bool bRound /*= true*/)
 {
@@ -641,8 +411,91 @@ void MyCanvas::SetExtent()
 	m_World2DC = (double)m_rDC.GetWidth() / (m_rWorld.MaxX - m_rWorld.MinX);
 	m_DC2World = 1.0 / m_World2DC;
 
-	Hello();
+	wxSize sz = GetClientSize();
+
+	bitmap.Create(sz);
+	memdc.SelectObject(bitmap);
+	memdc.SetBackground(wxBrush(wxColour(255, 255, 255), wxBRUSHSTYLE_SOLID));
+	memdc.Clear();
+	for (MyLayer *p:m_layers)
+	{
+		p->ofile.init(p->ofilepath);
+		p->Draw(memdc,*this);
+		p->ofile.close();
+	}
+	memdc.SelectObject(wxNullBitmap);
 	Refresh();
+}
+
+void MyCanvas::RandRun()
+{
+	wscdweight = &rand_run(ExePath+"test/a",useablest, d1stval);
+	SetExtent();
+}
+
+
+void MyLayer::Draw(wxMemoryDC &memdc,OGRFeature * pFea,MyCanvas &canv)
+{
+	OGRGeometry *pGeom = pFea->GetGeometryRef();
+	OGRwkbGeometryType geomType = pGeom->getGeometryType();
+
+	switch (geomType)
+	{
+	default:
+		break;
+	case wkbPoint:
+	{
+		OGRPoint *opt = (OGRPoint *)pGeom;
+		OGRRawPoint orpt(opt->getX(), opt->getY());
+		wxPoint p;
+		canv.XYWorld2DC(&p, &orpt);
+		memdc.DrawCircle(p, 4);
+		break;
+	}
+	case wkbPolygon:
+	{
+		vector<int> vparts;
+		vector<OGRRawPoint> vpts;
+		vector<wxPoint> wxpts;
+
+		OGRFile::extractPolygon(pGeom, vparts, vpts);
+		wxpts.resize(vpts.size());
+		std::transform(vpts.begin(), vpts.end(), wxpts.begin(), [&](OGRRawPoint &opt)->wxPoint {wxPoint p; canv.XYWorld2DC(&p, &opt); return p; });
+		if (vparts.size() > 1)
+		{
+			memdc.DrawPolyPolygon(vparts.size(), vparts.data(), wxpts.data(), 0, 0, wxWINDING_RULE);
+		}
+		else if (vparts.size() == 1)
+		{
+			memdc.DrawPolygon(wxpts.size(), wxpts.data());
+		}
+		break;
+	}
+	}
+}
+
+void MyLayer::Draw(wxMemoryDC &memdc,MyCanvas &canv)
+{
+	ofile.m_pLayer->SetAttributeFilter(nullptr);
+	ofile.m_pLayer->ResetReading();	
+	memdc.SetPen(origpen);
+	memdc.SetBrush(origbrush);
+	for (OGRFeature *pFea; pFea = ofile.m_pLayer->GetNextFeature(); OGRFeature::DestroyFeature(pFea))
+	{
+		Draw(memdc, pFea,canv);
+	}
+	for (int fid : identfid)
+	{
+		OGRFeature *pFea = ofile.m_pLayer->GetFeature(fid);
+		memdc.SetPen(identpen);
+		memdc.SetBrush(identbrush);
+		Draw(memdc, pFea, canv);
+		OGRFeature::DestroyFeature(pFea);
+	}
+}
+
+MyLayer::MyLayer(const string &str):ofilepath(str)
+{
 }
 
 
