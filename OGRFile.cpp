@@ -91,7 +91,7 @@ void OGRFile::open(openmode op)
 	close();
 	m_op=op;
 
-	if((m_poDS=(GDALDataset *)GDALOpenEx(m_name.c_str(),(op==OGRFile::app?GDAL_OF_UPDATE:GDAL_OF_READONLY)||GDAL_OF_VECTOR,nullptr,nullptr,nullptr)) && (m_pDrv=m_poDS->GetDriver())) m_pLayer=m_poDS->GetLayer(0);
+	if((m_poDS=(GDALDataset *)GDALOpenEx(m_name.c_str(),(op==OGRFile::app?GDAL_OF_UPDATE:GDAL_OF_READONLY)|GDAL_OF_VECTOR,nullptr,nullptr,nullptr)) && (m_pDrv=m_poDS->GetDriver())) m_pLayer=m_poDS->GetLayer(0);
 }
 
 void OGRFile::init( string strName, openmode mode/*=in*/, string strLayerName/*=""*/,string drvname/*=""*/,OGRwkbGeometryType geotype/*=wkbUnknown*/, OGRSpatialReference *psrs )
@@ -122,9 +122,10 @@ void OGRFile::create(OGRSpatialReference *p)
 	m_pDrv = GetGDALDriverManager()->GetDriverByName(m_drvname.c_str());
 	if (m_pDrv != nullptr)
 	{
+		//string dir(m_name.substr(0, m_name.rfind('\\'))), fname(m_name.substr(m_name.rfind('\\')));
 		m_pDrv->QuietDelete(m_name.c_str());
-		m_poDS = m_pDrv->Create(m_name.c_str(), 0, 0, 0, GDT_Unknown, NULL);//create 空文件夹才可以create?
-		if(m_poDS)	m_pLayer = m_poDS->CreateLayer("out", p, m_gt, NULL);
+		m_poDS = m_pDrv->Create(m_name.c_str(), 0, 0, 0, GDT_Unknown, NULL);
+		if(m_poDS)	m_pLayer = m_poDS->CreateLayer("layer", p, m_gt, NULL);
 	}
 }
 void OGRFile::extractPolygon(OGRGeometry *pGeom, vector<int> &vParts, vector<OGRRawPoint> &vPts)

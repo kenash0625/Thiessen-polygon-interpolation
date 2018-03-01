@@ -11,9 +11,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\ConsoleApplication2.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\OGRFile.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -26,9 +23,6 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\st2ws.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ConsoleApplication2.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
