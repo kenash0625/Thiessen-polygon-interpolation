@@ -1,25 +1,21 @@
 ﻿
 //#include "Files.h"
-
 #include "OGRFile.h"
 #include <sstream>
 #include <iostream>
 #include <algorithm>
 using namespace std;
-#ifdef GDALDEBUG
-#pragma comment(lib,"../debug/gdal_i.lib")
-#else 
-#pragma comment(lib,"../release/gdal_i.lib")
-#endif
-int GDALReg::m_nCnt=0;
+
+//int GDALReg::m_nCnt=0;
 
 GEOSContextHandle_t GDALReg::m_geo=nullptr;
 
 //char* pszOldEnc, *pszOldUTF8;
 GDALReg::GDALReg()
 {	
-	m_nCnt++;
-	if(m_nCnt>1) return;
+	//m_nCnt++;
+	//if(m_nCnt>1) return;
+	if(m_geo!=nullptr) {OGRGeometry::freeGEOSContext(m_geo);m_geo=nullptr;}
 	m_geo=OGRGeometry::createGEOSContext();
 	GDALAllRegister();
 	OGRRegisterAll();
@@ -29,9 +25,9 @@ GDALReg::GDALReg()
 	//const char* pszOldValTmp2 = CPLGetConfigOption("GDAL_FILENAME_IS_UTF8", NULL);
 	//pszOldUTF8 = pszOldValTmp2 ? CPLStrdup(pszOldValTmp2) : NULL;
 
-	
+	CPLSetConfigOption("USE_OSR_FIND_MATCHES", "NO");
  	CPLSetConfigOption("SHAPE_ENCODING", "");
- 	CPLSetConfigOption("GDAL_FILENAME_IS_UTF8","NO");
+ 	CPLSetConfigOption("GDAL_FILENAME_IS_UTF8","YES");
 // 	CPLSetConfigOption("OGR_XLSX_HEADERS","FORCE");
 // override with new value
 //	CPLSetConfigOption(pszKey, pszNewVal);
@@ -42,15 +38,17 @@ GDALReg::GDALReg()
 
 GDALReg::~GDALReg()
 {
-	m_nCnt--;
-	if (m_nCnt==0)
+	//m_nCnt--;
+	//if (m_nCnt==0)
 	{
 		//CPLSetConfigOption("SHAPE_ENCODING", pszOldEnc);
 		//CPLSetConfigOption("GDAL_FILENAME_IS_UTF8", pszOldUTF8);
 		//CPLFree(pszOldUTF8);
 		//CPLFree(pszOldEnc);
-		OGRCleanupAll();
 		OGRGeometry::freeGEOSContext(m_geo);
+		m_geo=nullptr;	
+		OGRCleanupAll();
+
 	}
 }
 
@@ -67,7 +65,7 @@ OGRFile::operator bool()
 
 GEOSContextHandle_t OGRFile::geosctx()
 {
-	return m_geo;
+	return GDALReg::m_geo;
 }
 
 OGRFile::~OGRFile()
@@ -126,46 +124,5 @@ void OGRFile::create(OGRSpatialReference *p)
 		m_pDrv->QuietDelete(m_name.c_str());
 		m_poDS = m_pDrv->Create(m_name.c_str(), 0, 0, 0, GDT_Unknown, NULL);
 		if(m_poDS)	m_pLayer = m_poDS->CreateLayer("layer", p, m_gt, NULL);
-	}
-}
-void OGRFile::extractPolygon(OGRGeometry *pGeom, vector<int> &vParts, vector<OGRRawPoint> &vPts)
-{
-	if (wkbPolygon == pGeom->getGeometryType())
-	{
-		OGRPolygon *pPoly = (OGRPolygon*)pGeom;
-		OGRLinearRing *pRing = pPoly->getExteriorRing();
-		vector<OGRRawPoint> pttmp(pRing->getNumPoints());
-		pRing->getPoints(pttmp.data());
-		vParts.push_back(pttmp.size());
-		vPts.insert(vPts.end(), pttmp.begin(), pttmp.end());
-		for (int j = 0; j < pPoly->getNumInteriorRings(); j++)
-		{
-			OGRLinearRing *pRing = pPoly->getInteriorRing(j);
-			vector<OGRRawPoint> pttmp(pRing->getNumPoints());
-			pRing->getPoints(pttmp.data());
-			vParts.push_back(pttmp.size());
-			vPts.insert(vPts.end(), pttmp.begin(), pttmp.end());
-		}
-	}
-	else if (wkbMultiPolygon == pGeom->getGeometryType())
-	{
-		OGRMultiPolygon *pmPoly = (OGRMultiPolygon*)pGeom;
-		for (int i = 0; i < pmPoly->getNumGeometries(); i++)
-		{
-			OGRPolygon *pPoly = (OGRPolygon*)pmPoly->getGeometryRef(i);
-			OGRLinearRing *pRing = pPoly->getExteriorRing();
-			vector<OGRRawPoint> pttmp(pRing->getNumPoints());
-			pRing->getPoints(pttmp.data());
-			vParts.push_back(pttmp.size());
-			vPts.insert(vPts.end(), pttmp.begin(), pttmp.end());
-			for (int j = 0; j < pPoly->getNumInteriorRings(); j++)
-			{
-				OGRLinearRing *pRing = pPoly->getInteriorRing(j);
-				vector<OGRRawPoint> pttmp(pRing->getNumPoints());
-				pRing->getPoints(pttmp.data());
-				vParts.push_back(pttmp.size());
-				vPts.insert(vPts.end(), pttmp.begin(), pttmp.end());
-			}
-		}
 	}
 }

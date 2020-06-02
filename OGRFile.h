@@ -9,14 +9,16 @@ class OGRFile;
 
 class GDALReg 
 {
-	friend class OGRFile;
-	static int m_nCnt;
+	//friend class OGRFile;
+public:
+	//static int m_nCnt;
 	static GEOSContextHandle_t m_geo;
+
 	GDALReg();
 	~GDALReg();
 };
 //表示一个shp文件 excel的一个sheet
-class OGRFile:private GDALReg
+class OGRFile//:private GDALReg
 {
 	OGRFile(const OGRFile &rhs);
 	OGRFile operator=(const OGRFile &rhs);
@@ -36,7 +38,6 @@ public:
 	void close();
 	void open(openmode op=in);
 	void create(OGRSpatialReference *p=nullptr);
-	static void extractPolygon(OGRGeometry * pGeom, vector<int>& vParts, vector<OGRRawPoint>& vPts);
 	operator bool();
 	GEOSContextHandle_t geosctx();
 };
